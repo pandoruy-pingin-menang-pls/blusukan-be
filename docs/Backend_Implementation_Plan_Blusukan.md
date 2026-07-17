@@ -23,7 +23,7 @@ Blusukan adalah aplikasi dual-mode:
 | AI/LLM Layer | **Gemini API** (vision, speech-to-text, embedding, NLG), orkestrasi via **LangChain** |
 | Routing Engine | **OSRM** (self-hosted, open source) |
 | Auth & Storage | Supabase Auth (phone OTP) + Supabase Storage (foto menu, foto produk) |
-| Task Queue / Scheduler | Celery + Redis (untuk scraping event, kalkulasi stok terjadwal) atau APScheduler jika skala MVP |
+| Task Queue / Scheduler | Celery + Redis (hanya untuk kalkulasi stok prediktif terjadwal) atau APScheduler jika skala MVP |
 | Caching | Redis |
 | Containerization | Docker + Docker Compose |
 | CI/CD | GitHub Actions |
@@ -72,7 +72,6 @@ blusukan-backend/
 │   │   └── qris_utils.py             # QRIS payload parsing/validation (bukan payment gateway)
 │   ├── workers/
 │   │   ├── celery_app.py
-│   │   ├── tasks_scraper.py          # scraping event calendar
 │   │   └── tasks_stock_recalc.py     # recalculate S_predicted terjadwal
 │   └── tests/
 │       ├── unit/
