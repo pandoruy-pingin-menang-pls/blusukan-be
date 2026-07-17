@@ -87,6 +87,10 @@ blusukan-backend/
 └── README.md
 ```
 
+**Aturan Routing API:**
+- Seluruh *endpoint* backend **wajib** diawali dengan prefix `/api/` (misal: `/api/health`, `/api/auth/login`).
+- Konvensi ini di-handle secara global melalui `APIRouter(prefix="/api")` di file `app/main.py`.
+
 ### 1.2 Branching Strategy
 
 Gunakan **Trunk-based hybrid dengan Git Flow ringan** (cocok untuk tim hackathon 4 orang, tapi tetap disiplin):
