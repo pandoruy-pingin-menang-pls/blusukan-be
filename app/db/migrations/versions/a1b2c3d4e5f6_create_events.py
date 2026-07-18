@@ -52,14 +52,14 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column(
             "genre",
-            sa.Enum(
+            postgresql.ENUM(
                 "cultural",
                 "sports",
                 "convention",
                 "concert",
                 "festival",
                 name="eventgenre",
-                create_constraint=False,
+                create_type=False,
             ),
             nullable=True,
         ),
@@ -79,12 +79,12 @@ def upgrade() -> None:
         sa.Column("end_datetime", sa.DateTime(timezone=True), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(
+            postgresql.ENUM(
                 "pending_review",
                 "approved",
                 "rejected",
                 name="eventstatus",
-                create_constraint=False,
+                create_type=False,
             ),
             server_default="pending_review",
             nullable=False,
