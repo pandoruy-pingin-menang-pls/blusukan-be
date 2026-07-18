@@ -9,6 +9,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import settings
 from app.db.base import Base
 
+# Import semua model di sini agar Alembic bisa menemukannya
+from app.modules.auth.models import User, RefreshToken
+from app.modules.merchant.models import Merchant
+from app.modules.catalog.models import MerchantCatalogItem
+
 config = context.config
 
 if config.config_file_name is not None:
