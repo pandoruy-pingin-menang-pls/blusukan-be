@@ -31,6 +31,12 @@ The solution is a single application with two modes:
 * **Dolan Mode** (for tourists): Users input natural language constraints such as time, budget, and interests. The system then generates an itinerary directing them to hidden-gem merchants using weighted routing.
 * **Bakul Mode** (for merchants): Merchants can onboard easily using photos or voice notes. They receive daily predictive stock recommendations based on events and weather, and can record transactions with zero platform fees via direct QRIS payments.
 
+## Deployment
+
+This backend is continuously deployed on Railway. You can access the live API and its documentation at:
+- **Base API URL:** [https://blusukan-be.up.railway.app/api](https://blusukan-be.up.railway.app/api)
+- **Swagger API Docs:** [https://blusukan-be.up.railway.app/api/docs](https://blusukan-be.up.railway.app/api/docs)
+
 ## Running Locally
 
 ```bash
