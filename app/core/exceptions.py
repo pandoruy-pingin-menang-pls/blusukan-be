@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+
 class OTPExpiredException(HTTPException):
     def __init__(self):
         super().__init__(status_code=400, detail={"error_code": "OTP_EXPIRED", "message": "Kode OTP sudah kedaluwarsa."})
