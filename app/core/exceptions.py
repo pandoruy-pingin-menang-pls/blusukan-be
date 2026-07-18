@@ -58,3 +58,12 @@ class InvalidStatusFilterException(HTTPException):
 class InvalidDateRangeException(HTTPException):
     def __init__(self):
         super().__init__(status_code=400, detail={"error_code": "INVALID_DATE_RANGE", "message": "end_datetime harus setelah start_datetime."})
+
+
+class RoutingNoMerchantsException(HTTPException):
+    def __init__(self, radius: int):
+        super().__init__(status_code=404, detail={"error_code": "ROUTING_NO_MERCHANTS", "message": f"Tidak ada UMKM Blusukan dalam radius {radius} meter."})
+
+class ItineraryNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "ITINERARY_NOT_FOUND", "message": "Itinerary tidak ditemukan."})
