@@ -9,6 +9,7 @@
 
 - Sebelum merge ke `develop`, CI wajib *pass* (Unit Test dan Ruff linter lulus).
 - Wajib me-raise exception menggunakan *class exception* kustom (dari `app/core/exceptions.py`), bukan `HTTPException` standar. Pesan error yang ditampilkan ke *Frontend* harus berbahasa Indonesia.
+- **Wajib memisahkan *magic numbers* atau konstanta baku ke dalam file tunggal `app/core/constants.py`. Dilarang melakukan *hardcode* angka krusial (batas waktu, radius, budget, batasan threshold) di dalam *service layer*.**
 - Wajib membuat *Unit Test* di tiap selesai pengerjaan per *branch*.
 
 1. **1 branch = 1 orang.** Anggota tim bebas mengklaim branch mana saja, asalkan dependensinya sudah terpenuhi.
