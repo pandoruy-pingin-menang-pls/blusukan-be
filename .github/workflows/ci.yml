@@ -31,4 +31,4 @@ jobs:
 
     - name: Run Tests (Pytest)
       run: |
-        pytest || true
+        pytest tests/
