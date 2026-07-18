@@ -55,7 +55,7 @@ async def register_user(db: AsyncSession, user_in: UserCreate):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email sudah terdaftar. Silakan gunakan email lain."
-        )
+        ) from None
     
     # 3. Generate token
     access_token = create_access_token(
