@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Path, status
+from fastapi import Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -26,7 +26,7 @@ async def require_merchant_ownership(
 
     if not merchant:
         raise MerchantNotFoundException()
-        
+
     if current_user.role != UserRole.ADMIN and merchant.owner_id != current_user.id:
         raise MerchantOwnershipException()
 
