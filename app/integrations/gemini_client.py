@@ -6,6 +6,11 @@ from google.genai import types
 
 from app.core.config import settings
 from app.core.logging import logger
+from app.core.constants import (
+    DEFAULT_TIME_LIMIT_MINUTES,
+    DEFAULT_BUDGET_IDR,
+    DEFAULT_SEARCH_RADIUS_METER
+)
 
 
 class GeminiClient:
@@ -69,6 +74,75 @@ class GeminiClient:
             return []
         except Exception as e:
             logger.error(f"Gemini API error during extract_menu_from_image: {str(e)}")
+            raise
+
+    async def parse_constraints(self, raw_query: str) -> dict:
+        """
+        Extract constraints from a natural language query for itinerary generation.
+        Returns a dictionary with parsed constraints.
+        """
+        if not self.client:
+            logger.info("Mocking Gemini response for parse_constraints")
+            return {
+                "time_limit_minutes": DEFAULT_TIME_LIMIT_MINUTES,
+                "budget_idr": DEFAULT_BUDGET_IDR,
+                "search_radius_meter": DEFAULT_SEARCH_RADIUS_METER,
+                "interest_categories": "kuliner, budaya",
+                "avoid_crowds": False
+            }
+
+        prompt = f"""
+        Anda adalah asisten pariwisata ahli. Tugas Anda adalah mengekstrak parameter batasan (constraints) dari permintaan turis berikut ini.
+        Permintaan: "{raw_query}"
+
+        Hasilkan output HANYA DALAM FORMAT JSON berupa satu object.
+        Object wajib memiliki keys berikut. Jika tidak disebutkan di permintaan, gunakan logika/asumsi standar (default) yang wajar:
+        - "time_limit_minutes" (integer): Batas waktu jalan-jalan dalam menit. (Default wajar: {DEFAULT_TIME_LIMIT_MINUTES}).
+        - "budget_idr" (integer): Total budget dalam Rupiah. (Default wajar: {DEFAULT_BUDGET_IDR}).
+        - "search_radius_meter" (integer): Radius pencarian dari titik awal dalam meter. (Default wajar: {DEFAULT_SEARCH_RADIUS_METER}).
+        - "interest_categories" (string): Kategori minat yang dicari (misal: "makanan pedas, kerajinan lokal"). (Default: "bebas").
+        - "avoid_crowds" (boolean): True jika turis spesifik ingin menghindari keramaian (hidden gems), False jika bebas. (Default: false).
+
+        Jangan beri teks penjelasan apapun selain JSON object.
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model=settings.GEMINI_MODEL_TEXT,
+                contents=prompt
+            )
+
+            raw_text = response.text
+            clean_text = raw_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+
+            parsed = json.loads(clean_text.strip())
+            
+            # Sanitasi fallback ringan jika gemini lalai
+            parsed.setdefault("time_limit_minutes", DEFAULT_TIME_LIMIT_MINUTES)
+            parsed.setdefault("budget_idr", DEFAULT_BUDGET_IDR)
+            parsed.setdefault("search_radius_meter", DEFAULT_SEARCH_RADIUS_METER)
+            parsed.setdefault("interest_categories", "bebas")
+            parsed.setdefault("avoid_crowds", False)
+            
+            return parsed
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Gemini JSON output in parse_constraints: {e}. Raw output: {raw_text}")
+            return {
+                "time_limit_minutes": DEFAULT_TIME_LIMIT_MINUTES,
+                "budget_idr": DEFAULT_BUDGET_IDR,
+                "search_radius_meter": DEFAULT_SEARCH_RADIUS_METER,
+                "interest_categories": "bebas",
+                "avoid_crowds": False
+            }
+        except Exception as e:
+            logger.error(f"Gemini API error during parse_constraints: {str(e)}")
             raise
 
     async def embed_text(self, text: str) -> List[float]:
