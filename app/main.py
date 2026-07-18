@@ -19,6 +19,17 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+# Izinkan Frontend (FE) untuk menembak API ini tanpa diblokir oleh CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Ganti dengan domain FE Anda saat production (misal: ["https://blusukan.com"])
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from app.modules.auth.router import router as auth_router
 
 api_router = APIRouter(prefix="/api")
