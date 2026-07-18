@@ -30,5 +30,15 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run Tests (Pytest)
+      env:
+        DATABASE_URL: "postgresql+asyncpg://dummy:dummy@localhost/dummy"
+        SUPABASE_URL: "https://dummy.supabase.co"
+        SUPABASE_SERVICE_ROLE_KEY: "dummy"
+        SUPABASE_ANON_KEY: "dummy"
+        JWT_SECRET_KEY: "dummy-secret"
+        GEMINI_API_KEY: "dummy"
+        REDIS_URL: "redis://localhost:6379/0"
+        CELERY_BROKER_URL: "redis://localhost:6379/1"
+        WEATHER_API_KEY: "dummy"
       run: |
-        pytest || true
+        pytest tests/
