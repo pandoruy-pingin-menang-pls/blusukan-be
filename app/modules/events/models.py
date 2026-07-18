@@ -9,6 +9,7 @@ from sqlalchemy.sql import func
 
 from app.db.base import Base
 
+
 class EventGenre(str, enum.Enum):
     CULTURAL = "cultural"
     SPORTS = "sports"

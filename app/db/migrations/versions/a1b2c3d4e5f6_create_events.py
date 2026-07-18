@@ -1,6 +1,6 @@
 """create_events_table
 
-Revision ID: 003_create_events
+Revision ID: a1b2c3d4e5f6
 Revises: 8a6d7558209f
 Create Date: 2026-07-18
 
@@ -14,7 +14,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "003_create_events"
+revision: str = "a1b2c3d4e5f6"
 down_revision: Union[str, None] = "8a6d7558209f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
