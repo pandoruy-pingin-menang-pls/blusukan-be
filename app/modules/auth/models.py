@@ -20,8 +20,8 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String(150), nullable=True)
-    role = Column(Enum(UserRole), default=UserRole.WISATAWAN, nullable=False)
-    has_merchant_profile = Column(Boolean, default=False, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.WISATAWAN, server_default="wisatawan", nullable=False)
+    has_merchant_profile = Column(Boolean, default=False, server_default="false", nullable=False)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)

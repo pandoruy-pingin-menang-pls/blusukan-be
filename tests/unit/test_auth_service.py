@@ -18,6 +18,8 @@ def mock_db_session():
     session = AsyncMock()
     # Hasil dari await db.execute() adalah object synchronous, jadi kita mock dengan MagicMock
     session.execute.return_value = MagicMock()
+    # db.add() dipanggil secara sinkron
+    session.add = MagicMock()
     return session
 
 @pytest.mark.asyncio
@@ -101,4 +103,4 @@ async def test_refresh_token_reuse_detection(mock_db_session):
         await refresh_access_token(mock_db_session, raw_refresh_token)
         
     assert exc_info.value.status_code == 401
-    assert "mencurigakan" in exc_info.value.detail.lower()
+    assert "mencurigakan" in exc_info.value.detail["message"].lower()

@@ -10,8 +10,10 @@ async def test_connection():
             print("[BERHASIL] Aplikasi sudah terhubung ke database Supabase.")
             print(f"Hasil Test Query (SELECT 1) = {result.scalar()}")
     except Exception as e:
+        import sys
         print("[GAGAL KONEK] Berikut pesan errornya:")
         print(e)
+        sys.exit(1)
     finally:
         # Menutup engine secara aman
         await engine.dispose()
