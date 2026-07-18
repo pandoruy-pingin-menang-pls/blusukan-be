@@ -2,6 +2,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.modules.auth.router import router as auth_router
+from app.modules.catalog.router import router as catalog_router
 from app.modules.merchant.router import router as merchant_router
 
 description = """
@@ -35,6 +36,7 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
 api_router.include_router(merchant_router)
+api_router.include_router(catalog_router)
 
 @api_router.get("/", tags=["Root"])
 async def root():
