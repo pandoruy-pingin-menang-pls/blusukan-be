@@ -100,7 +100,7 @@ class GeminiClient:
         - "time_limit_minutes" (integer): Batas waktu jalan-jalan dalam menit. (Default wajar: {DEFAULT_TIME_LIMIT_MINUTES}).
         - "budget_idr" (integer): Total budget dalam Rupiah. (Default wajar: {DEFAULT_BUDGET_IDR}).
         - "search_radius_meter" (integer): Radius pencarian dari titik awal dalam meter. (Default wajar: {DEFAULT_SEARCH_RADIUS_METER}).
-        - "interest_categories" (string): Kategori minat yang dicari (misal: "makanan pedas, kerajinan lokal"). (Default: "bebas").
+        - "interest_categories" (string): Kategori minat yang dicari (misal: "makanan pedas, kerajinan lokal"). Jika turis menyatakan "terserah", "apa aja", "bebas", atau tidak menyebutkan kategori secara spesifik, maka WAJIB isi persis dengan kata: "bebas".
         - "avoid_crowds" (boolean): True jika turis spesifik ingin menghindari keramaian (hidden gems), False jika bebas. (Default: false).
 
         Jangan beri teks penjelasan apapun selain JSON object.
