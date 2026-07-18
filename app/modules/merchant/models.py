@@ -1,8 +1,18 @@
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -38,6 +48,22 @@ class Merchant(Base):
         Boolean, default=False, server_default="false", nullable=False
     )
     is_active = Column(Boolean, default=True, server_default="true", nullable=False)
+    is_redemption_partner = Column(Boolean, default=False, server_default="false", nullable=False)
+
+    baseline_rating = Column(Numeric(2, 1), default=4.0, server_default="4.0", nullable=False)
+    review_count = Column(Integer, default=0, server_default="0", nullable=False)
+    baseline_inventory = Column(JSONB, nullable=True)
+    qris_image_url = Column(Text, nullable=True)
+
+    status = Column(
+        ENUM("pending", "active", "suspended", name="merchant_status_enum", create_type=False),
+        default="pending",
+        server_default="pending",
+        nullable=False,
+    )
+
+    daily_ingest_count = Column(Integer, default=0, server_default="0", nullable=False)
+    ingest_count_reset_at = Column(Date, nullable=True)
 
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
