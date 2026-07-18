@@ -2,6 +2,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.modules.auth.router import router as auth_router
+from app.modules.merchant.router import router as merchant_router
 
 description = """
 Blusukan API (BytesFest 2026)
@@ -33,6 +34,7 @@ app.add_middleware(
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
+api_router.include_router(merchant_router)
 
 @api_router.get("/", tags=["Root"])
 async def root():

@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import DuplicateMerchantException
 from app.core.security import create_access_token
 from app.modules.auth.models import RefreshToken, User, UserRole
 from app.modules.auth.service import _generate_and_add_refresh_token
@@ -16,10 +16,7 @@ async def register_merchant(
 ) -> dict:
     # 1. Cek apakah user sudah punya toko
     if user.has_merchant_profile:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Anda sudah memiliki profil toko. 1 Akun hanya bisa membuat 1 toko.",
-        )
+        raise DuplicateMerchantException()
 
     # 2. Konversi Latitude & Longitude ke format WKT PostGIS (SRID 4326)
     # Format standard: POINT(lon lat)

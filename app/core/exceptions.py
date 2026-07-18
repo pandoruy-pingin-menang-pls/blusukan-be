@@ -37,3 +37,11 @@ class TokenReuseDetectedException(HTTPException):
 class IngestLimitReachedException(HTTPException):
     def __init__(self):
         super().__init__(status_code=429, detail={"error_code": "INGEST_LIMIT_REACHED", "message": "Batas limit tercapai."})
+
+class DuplicateMerchantException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "MERCHANT_ALREADY_EXISTS", "message": "Anda sudah memiliki profil toko. 1 Akun hanya bisa membuat 1 toko."})
+
+class MerchantNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "MERCHANT_NOT_FOUND", "message": "Profil toko tidak ditemukan."})
