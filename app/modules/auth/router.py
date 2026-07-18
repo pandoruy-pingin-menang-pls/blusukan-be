@@ -31,13 +31,13 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 @router.patch("/me", response_model=schemas.UserResponse)
 async def update_me(
-    user_update: schemas.UserUpdate, 
+    user_update: schemas.UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     if user_update.full_name is not None:
         current_user.full_name = user_update.full_name
-        
+
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)

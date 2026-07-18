@@ -1,8 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
+
 from app.modules.auth.models import UserRole
+
 
 # -----------------
 # USER SCHEMAS

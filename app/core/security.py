@@ -1,9 +1,12 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Any, Union
-from jose import jwt, JWTError
-import bcrypt
 import hashlib
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional, Union
+
+import bcrypt
+from jose import JWTError, jwt
+
 from app.core.config import settings
+
 
 def _pre_hash(secret: str) -> bytes:
     # Pre-hash dengan SHA-256 agar terhindar dari limit 72-byte bawaan algoritma bcrypt
@@ -17,16 +20,16 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(_pre_hash(password), salt).decode('utf-8')
 
 def create_access_token(
-    subject: Union[str, Any], 
-    role: str, 
-    has_merchant_profile: bool, 
+    subject: Union[str, Any],
+    role: str,
+    has_merchant_profile: bool,
     expires_delta: Optional[timedelta] = None
 ) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode = {
         "exp": expire,
         "sub": str(subject),

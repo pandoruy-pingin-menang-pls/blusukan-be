@@ -1,4 +1,8 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.modules.auth.router import router as auth_router
+from app.modules.merchant.router import router as merchant_router
 
 description = """
 Blusukan API (BytesFest 2026)
@@ -19,8 +23,6 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-from fastapi.middleware.cors import CORSMiddleware
-
 # Izinkan Frontend (FE) untuk menembak API ini tanpa diblokir oleh CORS
 app.add_middleware(
     CORSMiddleware,
@@ -30,10 +32,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.modules.auth.router import router as auth_router
-
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_router)
+api_router.include_router(merchant_router)
 
 @api_router.get("/", tags=["Root"])
 async def root():
