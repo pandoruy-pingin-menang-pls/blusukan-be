@@ -29,8 +29,9 @@ class DuplicateStampException(HTTPException):
         super().__init__(status_code=409, detail={"error_code": "STAMP_ALREADY_AWARDED", "message": "Stamp sudah diberikan sebelumnya."})
 
 class TokenReuseDetectedException(HTTPException):
-    def __init__(self):
-        super().__init__(status_code=401, detail={"error_code": "TOKEN_REUSE_DETECTED", "message": "Penggunaan ulang token terdeteksi."})
+    def __init__(self, message="Terdeteksi aktivitas mencurigakan pada sesi Anda. Anda telah dikeluarkan dari semua perangkat demi keamanan."):
+        super().__init__(status_code=401, detail={"error_code": "TOKEN_REUSE_DETECTED", "message": message})
+
 
 class IngestLimitReachedException(HTTPException):
     def __init__(self):

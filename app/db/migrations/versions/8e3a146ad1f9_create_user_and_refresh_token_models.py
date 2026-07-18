@@ -25,8 +25,8 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('hashed_password', sa.String(), nullable=False),
     sa.Column('full_name', sa.String(length=150), nullable=True),
-    sa.Column('role', sa.Enum('WISATAWAN', 'PEDAGANG', 'ADMIN', name='userrole'), nullable=False),
-    sa.Column('has_merchant_profile', sa.Boolean(), nullable=False),
+    sa.Column('role', sa.Enum('WISATAWAN', 'PEDAGANG', 'ADMIN', name='userrole'), server_default=sa.text("'wisatawan'"), nullable=False),
+    sa.Column('has_merchant_profile', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -54,4 +54,5 @@ def downgrade() -> None:
     op.drop_table('refresh_tokens')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+    op.execute("DROP TYPE userrole")
     # ### end Alembic commands ###
