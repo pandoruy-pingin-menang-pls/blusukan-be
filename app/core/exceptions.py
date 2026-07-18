@@ -45,3 +45,16 @@ class DuplicateMerchantException(HTTPException):
 class MerchantNotFoundException(HTTPException):
     def __init__(self):
         super().__init__(status_code=404, detail={"error_code": "MERCHANT_NOT_FOUND", "message": "Profil toko tidak ditemukan."})
+
+
+class EventNotFoundException(HTTPException):
+    def __init__(self, event_id: str):
+        super().__init__(status_code=404, detail={"error_code": "EVENT_NOT_FOUND", "message": f"Event dengan ID {event_id} tidak ditemukan atau belum disetujui."})
+
+class InvalidStatusFilterException(HTTPException):
+    def __init__(self, status_filter: str):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_STATUS_FILTER", "message": f"Status '{status_filter}' tidak valid. Pilihan: pending_review, approved, rejected"})
+
+class InvalidDateRangeException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_DATE_RANGE", "message": "end_datetime harus setelah start_datetime."})

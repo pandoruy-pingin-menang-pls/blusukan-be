@@ -8,10 +8,14 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import (
+    EventNotFoundException,
+    InvalidDateRangeException,
+    InvalidStatusFilterException,
+)
 from app.modules.auth.models import User
 from app.modules.events.models import Event, EventStatus
 from app.modules.events.schemas import EventCreate, EventResponse, EventReview
@@ -91,13 +95,7 @@ async def list_events_admin(
         try:
             parsed_status = EventStatus(status_filter)
         except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error_code": "INVALID_STATUS_FILTER",
-                    "message": f"Status '{status_filter}' tidak valid. Pilihan: pending_review, approved, rejected",
-                },
-            ) from None
+            raise InvalidStatusFilterException(status_filter) from None
         stmt = stmt.where(Event.status == parsed_status)
 
     result = await db.execute(stmt)
@@ -125,13 +123,7 @@ async def review_event(
     event = result.scalars().first()
 
     if event is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error_code": "EVENT_NOT_FOUND",
-                "message": f"Event dengan ID {event_id} tidak ditemukan.",
-            },
-        )
+        raise EventNotFoundException(str(event_id))
 
     # Terapkan edited_fields jika ada
     if review_in.name is not None:
@@ -147,13 +139,7 @@ async def review_event(
     new_start = review_in.start_datetime or event.start_datetime
     new_end = review_in.end_datetime or event.end_datetime
     if new_end <= new_start:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error_code": "INVALID_DATE_RANGE",
-                "message": "end_datetime harus setelah start_datetime.",
-            },
-        )
+        raise InvalidDateRangeException()
     event.start_datetime = new_start
     event.end_datetime = new_end
 
@@ -212,12 +198,6 @@ async def get_event_public(db: AsyncSession, event_id: UUID) -> EventResponse:
     event = result.scalars().first()
 
     if event is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error_code": "EVENT_NOT_FOUND",
-                "message": f"Event dengan ID {event_id} tidak ditemukan atau belum disetujui.",
-            },
-        )
+        raise EventNotFoundException(str(event_id))
 
     return _build_event_response(event)

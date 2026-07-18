@@ -4,6 +4,7 @@ from typing import List
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import MAX_DAILY_INGEST
 from app.core.exceptions import IngestLimitReachedException
 from app.integrations.gemini_client import gemini_client
 from app.integrations.supabase_storage import supabase_storage
@@ -15,7 +16,6 @@ from app.modules.catalog.schemas import (
 )
 from app.modules.merchant.models import Merchant
 
-MAX_DAILY_INGEST = 5
 
 class CatalogService:
     @staticmethod
