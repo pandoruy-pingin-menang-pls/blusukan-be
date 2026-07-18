@@ -564,6 +564,9 @@ def calculate_m_event(attendee_count: int | None, distance_m: float) -> float:
         return 0.10
     return 0
 
+# Mapping OpenWeatherMap ID ke weather_condition:
+# - ID 2xx, 3xx, 5xx (Thunderstorm, Drizzle, Rain) -> "heavy_rain"
+# - ID 800 (Clear) ATAU temp > 32C -> "sunny" / "hot"
 def calculate_m_weather(weather_condition: str, merchant_category: str) -> float:
     """Lookup table M_weather berdasarkan cuaca dan kategori merchant."""
     table = {
