@@ -1,0 +1,20 @@
+FROM ghcr.io/project-osrm/osrm-backend:latest
+
+RUN apt-get update && apt-get install -y wget
+
+WORKDIR /data
+
+RUN wget https://download.geofabrik.de/asia/indonesia/java-latest.osm.pbf
+
+RUN osrm-extract -p /opt/foot.lua java-latest.osm.pbf
+
+# Partition graf untuk kalkulasi cepat (MLD - Multi-Level Dijkstra)
+RUN osrm-partition java-latest.osrm
+
+RUN osrm-customize java-latest.osrm
+
+RUN rm java-latest.osm.pbf
+
+EXPOSE 5000
+
+CMD ["osrm-routed", "--algorithm", "mld", "java-latest.osrm"]
