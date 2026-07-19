@@ -74,13 +74,20 @@ class RoutingService:
         origin_pt = f"SRID=4326;POINT({current_lon} {current_lat})"
 
         # 3. Query Database
-        # Jika user spesifik mencari sesuatu, generate vector
-        query_embedding = None
-        if interest != "bebas":
+        # 3. Vector Embedding (jika ada kategori spesifik)
+        query_embeddings = []
+        if interest and interest.lower() != "bebas":
+            import re
+            # Pisahkan query ganda (contoh: "kerajinan dan makanan") jadi ["kerajinan", "makanan"]
+            categories = [c.strip() for c in re.split(r',|\bdan\b|\batau\b|\b&\b', interest.lower()) if c.strip()]
             try:
-                query_embedding = await gemini_client.embed_text(interest)
+                for cat in categories:
+                    emb = await gemini_client.embed_text(cat)
+                    query_embeddings.append(emb)
             except Exception as e:
                 logger.error(f"Failed to generate embedding for {interest}: {e}")
+                # Berikan warning ke user bahwa pencarian dialihkan ke "bebas" karena Rate Limit AI
+                parsed_constraints["warning"] = "Sistem AI sedang mencapai batas *Rate Limit*. Pencarian otomatis dialihkan ke mode default. Silakan coba 1 menit lagi untuk pencarian spesifik."
 
         # Base query: Cari merchant di dalam radius
         # ST_DWithin dalam meter (karena SRID 4326, kita cast ke geography)
@@ -112,14 +119,22 @@ class RoutingService:
 
         # Ambil category match if needed
         merchant_category_scores = {}
-        if query_embedding:
+        if query_embeddings:
             # Cari distance minimum (closest) untuk item yang dimiliki merchant-merchant ini
             merchant_ids = [row[0].id for row in merchants_data]
+
+            # Buat array of distance untuk masing-masing embedding query
+            distances = []
+            for emb in query_embeddings:
+                distances.append(MerchantCatalogItem.embedding.cosine_distance(emb))
+
+            # Jika user cari > 1 kategori, ambil jarak TETERDEKAT (paling mirip) dari semua opsi tersebut (Logika OR)
+            least_distance = distances[0] if len(distances) == 1 else func.least(*distances)
+
             vector_stmt = (
                 select(
                     MerchantCatalogItem.merchant_id,
-                    # <=> is Cosine distance. Semakin kecil semakin mirip.
-                    func.min(MerchantCatalogItem.embedding.cosine_distance(query_embedding)).label("min_distance")
+                    func.min(least_distance).label("min_distance")
                 )
                 .where(MerchantCatalogItem.merchant_id.in_(merchant_ids))
                 .where(MerchantCatalogItem.embedding.is_not(None))
@@ -138,11 +153,13 @@ class RoutingService:
             h_idx = calculate_hidden_gem_index(m.review_count)
             # b. Category Match
             # Jika ada query spesifik, merchant yg tidak punya menu akan mendapat skor 0.0 (dan akan di-filter out).
-            c_match = merchant_category_scores.get(m.id, 0.0) if query_embedding else 1.0
+            c_match = merchant_category_scores.get(m.id, 0.0) if query_embeddings else 1.0
 
-            # Hard filter: Threshold dinaikkan ke 0.55 karena model modern (gemini-embedding-2)
-            # cenderung memberikan skor cosine > 0.4 bahkan untuk kata yang tidak terlalu nyambung.
-            if query_embedding and c_match < 0.55:
+            # Hard filter: Threshold dikembalikan ke 0.55.
+            # Berkat logika func.least (OR search), kategori ganda akan dinilai terpisah (vektor murni).
+            # "Kerajinan" vs "Cilok" skornya ~0.54, jadi dengan threshold 0.55 toko makanan akan DIBLOKIR untuk "kerajinan".
+            # "Makanan" vs "Cilok" skornya ~0.62, jadi akan LOLOS.
+            if query_embeddings and c_match < 0.55:
                 continue
 
             # c. Distance Norm
