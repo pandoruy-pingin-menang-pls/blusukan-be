@@ -1,8 +1,9 @@
+import ssl
+
 from celery import Celery
 from celery.schedules import crontab
 
 from app.core.config import settings
-import ssl
 
 # Inisialisasi Celery App
 celery_app = Celery(
