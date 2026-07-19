@@ -17,6 +17,7 @@ from app.core.exceptions import (
     RedemptionCodeExpiredException,
     RedemptionNotFoundException,
 )
+from app.modules.auth.models import User
 from app.modules.gamification.models import (
     Promo,
     PromoRedemption,
@@ -24,7 +25,6 @@ from app.modules.gamification.models import (
     Stamp,
 )
 from app.modules.gamification.schemas import PromoCreate
-from app.modules.auth.models import User
 
 
 class GamificationService:
@@ -113,7 +113,7 @@ class GamificationService:
         # (PostgreSQL tidak mengizinkan FOR UPDATE pada fungsi agregat)
         user_stmt = select(1).select_from(User).where(User.id == user_id).with_for_update()
         await db.execute(user_stmt)
-        
+
         user_stamp_count = await GamificationService.get_total_stamps(db, user_id)
 
         # 2. Ambil data promo
