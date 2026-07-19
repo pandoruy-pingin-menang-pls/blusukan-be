@@ -137,7 +137,14 @@ class RoutingService:
             # a. Hidden Gem
             h_idx = calculate_hidden_gem_index(m.review_count)
             # b. Category Match
-            c_match = merchant_category_scores.get(m.id, 1.0) if query_embedding else 1.0
+            # Jika ada query spesifik, merchant yg tidak punya menu akan mendapat skor 0.0 (dan akan di-filter out).
+            c_match = merchant_category_scores.get(m.id, 0.0) if query_embedding else 1.0
+
+            # Hard filter: Threshold dinaikkan ke 0.55 karena model modern (gemini-embedding-2)
+            # cenderung memberikan skor cosine > 0.4 bahkan untuk kata yang tidak terlalu nyambung.
+            if query_embedding and c_match < 0.55:
+                continue
+
             # c. Distance Norm
             d_norm = calculate_distance_norm(dist_m, radius)
             # d. Rating Norm
@@ -159,6 +166,10 @@ class RoutingService:
                 "lon": m_lon,
                 "lat": m_lat
             })
+
+        if not scored_merchants:
+            # Jika setelah difilter kategori ternyata tidak ada yang relevan sama sekali
+            raise RoutingNoMerchantsException(radius=radius)
 
         # 5. Sort DESC dan ambil top N
         scored_merchants.sort(key=lambda x: x["score"], reverse=True)

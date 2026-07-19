@@ -157,7 +157,8 @@ class GeminiClient:
         try:
             response = self.client.models.embed_content(
                 model=settings.GEMINI_EMBEDDING_MODEL,
-                contents=text
+                contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
             )
             return response.embeddings[0].values
         except Exception as e:

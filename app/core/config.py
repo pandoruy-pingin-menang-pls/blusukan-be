@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     REDIS_URL: str
     CELERY_BROKER_URL: str
     WEATHER_API_KEY: str
-    OSRM_BASE_URL: str = "http://localhost:5000"
+    OSRM_BASE_URL: str = "https://router.project-osrm.org"
     SUPABASE_STORAGE_BUCKET_MENU: str = "merchant-menus"
     SUPABASE_STORAGE_BUCKET_VOICE: str = "merchant-voicenotes"
     MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024
