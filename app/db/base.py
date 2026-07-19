@@ -5,4 +5,3 @@ class Base(DeclarativeBase):
     pass
 
 # Import semua model di sini agar Alembic bisa menemukannya
-

@@ -42,6 +42,10 @@ class Merchant(Base):
 
     # Koordinat geospasial menggunakan PostGIS (SRID 4326 untuk WGS 84 / GPS)
     location = Column(Geometry(geometry_type="POINT", srid=4326), nullable=False)
+
+    # Baseline stok harian yang dimasukkan merchant, contoh: {"hot_culinary": 50, "cold_beverage": 100}
+    baseline_inventory = Column(JSONB, nullable=True)
+
     address = Column(Text, nullable=True)
 
     is_verified = Column(
@@ -52,7 +56,6 @@ class Merchant(Base):
 
     baseline_rating = Column(Numeric(2, 1), default=4.0, server_default="4.0", nullable=False)
     review_count = Column(Integer, default=0, server_default="0", nullable=False)
-    baseline_inventory = Column(JSONB, nullable=True)
     qris_image_url = Column(Text, nullable=True)
 
     status = Column(
