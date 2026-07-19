@@ -59,6 +59,10 @@ async def register_merchant(
     await db.commit()
     await db.refresh(new_merchant)
 
+    # Inject latitude dan longitude agar MerchantResponse terisi
+    new_merchant.latitude = merchant_in.latitude
+    new_merchant.longitude = merchant_in.longitude
+
     # Kembalikan response gabungan: Data Toko + Token Baru
     return {
         "merchant": MerchantResponse.model_validate(new_merchant),

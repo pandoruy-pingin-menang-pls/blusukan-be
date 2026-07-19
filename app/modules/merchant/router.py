@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.exceptions import MerchantNotFoundException
-from app.modules.auth.dependencies import get_current_user, security
-from fastapi.security import HTTPAuthorizationCredentials
 from app.db.session import get_db
+from app.modules.auth.dependencies import get_current_user, security
 from app.modules.auth.models import User
 from app.modules.merchant.models import Merchant
 from app.modules.merchant.schemas import MerchantCreate, MerchantResponse
@@ -44,8 +45,21 @@ async def get_my_merchant_profile(
     if not current_user.has_merchant_profile:
         raise MerchantNotFoundException()
 
-    result = await db.execute(select(Merchant).where(Merchant.owner_id == current_user.id))
-    merchant = result.scalars().first()
+    stmt = select(
+        Merchant,
+        func.ST_Y(Merchant.location).label("lat"),
+        func.ST_X(Merchant.location).label("lon")
+    ).where(Merchant.owner_id == current_user.id)
+
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if not row:
+        raise MerchantNotFoundException()
+
+    merchant = row[0]
+    merchant.latitude = row.lat
+    merchant.longitude = row.lon
 
     if not merchant:
         raise MerchantNotFoundException()
