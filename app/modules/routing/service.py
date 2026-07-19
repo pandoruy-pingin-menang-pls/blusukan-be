@@ -1,31 +1,31 @@
-import json
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text, cast
-from typing import List, Dict, Any, Tuple
 from uuid import UUID
 
+from sqlalchemy import cast, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.constants import (
-    DEFAULT_TIME_LIMIT_MINUTES,
-    DEFAULT_SEARCH_RADIUS_METER,
     DEFAULT_BUDGET_IDR,
-    MIN_SEARCH_RADIUS_METER,
+    DEFAULT_SEARCH_RADIUS_METER,
+    DEFAULT_TIME_LIMIT_MINUTES,
     MAX_SEARCH_RADIUS_METER,
-    MIN_BUDGET_IDR
+    MIN_BUDGET_IDR,
+    MIN_SEARCH_RADIUS_METER,
 )
-from app.modules.merchant.models import Merchant
-from app.modules.catalog.models import MerchantCatalogItem
-from app.modules.routing.models import Itinerary
 from app.core.exceptions import RoutingNoMerchantsException
-from app.modules.routing.weight_presets import get_weights
-from app.modules.routing.scoring import (
-    calculate_hidden_gem_index,
-    calculate_distance_norm,
-    calculate_rating_norm,
-    calculate_saw_score
-)
+from app.core.logging import logger
 from app.integrations.gemini_client import gemini_client
 from app.integrations.osrm_client import osrm_client
-from app.core.logging import logger
+from app.modules.catalog.models import MerchantCatalogItem
+from app.modules.merchant.models import Merchant
+from app.modules.routing.models import Itinerary
+from app.modules.routing.scoring import (
+    calculate_distance_norm,
+    calculate_hidden_gem_index,
+    calculate_rating_norm,
+    calculate_saw_score,
+)
+from app.modules.routing.weight_presets import get_weights
+
 
 class RoutingService:
     @staticmethod
@@ -46,33 +46,32 @@ class RoutingService:
         6. Panggil OSRM untuk routing GeoJSON.
         7. Simpan ke database dan return.
         """
-        
+
         # 1. NLP Parse Constraints
         logger.info(f"Generating itinerary for user {user_id}: {raw_query}")
         parsed_constraints = await gemini_client.parse_constraints(raw_query)
-        
+
         time_limit = parsed_constraints.get("time_limit_minutes", DEFAULT_TIME_LIMIT_MINUTES)
         budget = parsed_constraints.get("budget_idr", DEFAULT_BUDGET_IDR)
         radius = parsed_constraints.get("search_radius_meter", DEFAULT_SEARCH_RADIUS_METER)
         interest = parsed_constraints.get("interest_categories", "bebas")
-        
+
         # Clamp radius untuk keamanan DB
         radius = min(max(radius, MIN_SEARCH_RADIUS_METER), MAX_SEARCH_RADIUS_METER)
-        
+
         # Clamp budget (minimal sesuai konstanta agar tidak Rp0)
         budget = max(budget, MIN_BUDGET_IDR)
-        
+
         # 2. Heuristik Waktu & Budget
         # Asumsi 1 tempat butuh waktu 60 menit (termasuk jalan + makan/belanja)
         target_merchant_count = max(1, min(time_limit // 60, 4)) # Maksimal 4 toko
-        budget_per_merchant = budget / target_merchant_count
 
         # Dapatkan bobot SAW
         weights = get_weights(parsed_constraints)
-        
+
         # Persiapkan titik awal
         origin_pt = f"SRID=4326;POINT({current_lon} {current_lat})"
-        
+
         # 3. Query Database
         # Jika user spesifik mencari sesuatu, generate vector
         query_embedding = None
@@ -81,7 +80,7 @@ class RoutingService:
                 query_embedding = await gemini_client.embed_text(interest)
             except Exception as e:
                 logger.error(f"Failed to generate embedding for {interest}: {e}")
-                
+
         # Base query: Cari merchant di dalam radius
         # ST_DWithin dalam meter (karena SRID 4326, kita cast ke geography)
         stmt = (
@@ -101,20 +100,20 @@ class RoutingService:
                     radius
                 )
             )
-            .where(Merchant.is_active == True)
+            .where(Merchant.is_active)
         )
-        
+
         result = await db.execute(stmt)
         merchants_data = result.all() # Tuple (Merchant, distance_m, lon, lat)
-        
+
         if not merchants_data:
             raise RoutingNoMerchantsException(radius=radius)
-            
+
         # Ambil category match if needed
         merchant_category_scores = {}
         if query_embedding:
             # Cari distance minimum (closest) untuk item yang dimiliki merchant-merchant ini
-            merchant_ids = [m.Merchant.id for m in merchants_data]
+            merchant_ids = [row[0].id for row in merchants_data]
             vector_stmt = (
                 select(
                     MerchantCatalogItem.merchant_id,
@@ -142,7 +141,7 @@ class RoutingService:
             d_norm = calculate_distance_norm(dist_m, radius)
             # d. Rating Norm
             r_norm = calculate_rating_norm(float(m.baseline_rating))
-            
+
             score = calculate_saw_score(
                 hidden_gem_index=h_idx,
                 category_match=c_match,
@@ -151,7 +150,7 @@ class RoutingService:
                 weights=weights,
                 is_redemption_partner=m.is_redemption_partner
             )
-            
+
             scored_merchants.append({
                 "merchant": m,
                 "score": score,
@@ -159,25 +158,25 @@ class RoutingService:
                 "lon": m_lon,
                 "lat": m_lat
             })
-            
+
         # 5. Sort DESC dan ambil top N
         scored_merchants.sort(key=lambda x: x["score"], reverse=True)
         top_merchants = scored_merchants[:target_merchant_count]
-        
+
         if not top_merchants:
              raise RoutingNoMerchantsException(radius=radius)
-        
+
         # 6. Panggil OSRM
         # Titik pertama adalah user (lon, lat)
         coords = [(current_lon, current_lat)]
         waypoints_json = []
-        
+
         for idx, item in enumerate(top_merchants):
             m = item["merchant"]
             m_lon = item["lon"]
             m_lat = item["lat"]
             coords.append((m_lon, m_lat))
-            
+
             waypoints_json.append({
                 "merchant_id": str(m.id),
                 "name": m.name,
@@ -187,7 +186,7 @@ class RoutingService:
                 "order": idx + 1,
                 "category": m.category or "Kuliner",
             })
-            
+
         # Panggil OSRM
         try:
             route_data = await osrm_client.get_route(coords)
@@ -197,7 +196,7 @@ class RoutingService:
             logger.error(f"OSRM Routing failed, fallback to mock: {e}")
             route_geojson = {"type": "LineString", "coordinates": coords}
             total_duration_minutes = len(coords) * 15 # mock 15 mnt per titik
-            
+
         # 7. Simpan ke Database
         itinerary = Itinerary(
             user_id=user_id,
@@ -211,7 +210,7 @@ class RoutingService:
         db.add(itinerary)
         await db.commit()
         await db.refresh(itinerary)
-        
+
         return itinerary
 
 routing_service = RoutingService()

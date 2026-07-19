@@ -4,7 +4,7 @@ from app.core.constants import MAX_REVIEW_THRESHOLD
 # ENGINEERING DECISION LOG - Wajib dipertahankan untuk referensi juri
 # ================================================================
 # 1. Term Distance: Implementasi w3 menggunakan Distance_normalized (Opsi A)
-#    BUKAN 1/Distance secara literal seperti di proposal awal. 
+#    BUKAN 1/Distance secara literal seperti di proposal awal.
 #    Alasan: Jika 1/Distance_normalized dipakai literal, merchant paling jauh
 #    (Distance_norm -> 0) akan menghasilkan score -> Tak Terhingga (berlawanan tujuan).
 #    Opsi A (Distance Normalized murni) konsisten dengan definisi algoritma SAW.
@@ -59,18 +59,18 @@ def calculate_saw_score(
     w2 = weights.get("w2", 0.0)
     w3 = weights.get("w3", 0.0)
     w4 = weights.get("w4", 0.0)
-    
+
     score = (
         (w1 * hidden_gem_index) +
         (w2 * category_match) +
         (w3 * distance_norm) +
         (w4 * rating_norm)
     )
-    
+
     # Bonus multiplier C = 1.2 jika dia adalah merchant langganan event (redemption partner)
     # Sesuai proposal: Score = Score * C
     c_multiplier = 1.2 if is_redemption_partner else 1.0
-    
+
     final_score = score * c_multiplier
-    
+
     return round(final_score, 4)

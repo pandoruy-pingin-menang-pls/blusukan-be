@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.exceptions import MerchantNotFoundException
-from app.core.security import JWTBearer
+from app.modules.auth.dependencies import get_current_user, security
+from fastapi.security import HTTPAuthorizationCredentials
 from app.db.session import get_db
 from app.modules.auth.models import User
 from app.modules.merchant.models import Merchant
@@ -16,15 +17,16 @@ router = APIRouter(prefix="/merchants", tags=["Merchants"])
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def create_merchant_profile(
     merchant_in: MerchantCreate,
-    current_user: User = Depends(JWTBearer()),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    token: str = Depends(JWTBearer(auto_error=False)),
+    token_creds: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Mendaftarkan toko baru.
     Akan mengembalikan data toko beserta access_token dan refresh_token baru
     yang sudah ter-update dengan role 'pedagang'.
     """
+    token = token_creds.credentials if token_creds else None
     if not token:
         raise HTTPException(status_code=401, detail="Token tidak ditemukan")
 
@@ -33,7 +35,7 @@ async def create_merchant_profile(
 
 @router.get("/me", response_model=MerchantResponse)
 async def get_my_merchant_profile(
-    current_user: User = Depends(JWTBearer()),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """

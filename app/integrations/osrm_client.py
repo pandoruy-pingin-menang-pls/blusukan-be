@@ -1,7 +1,10 @@
+from typing import Any, Dict, List, Tuple
+
 import httpx
-from typing import List, Tuple, Dict, Any
+
 from app.core.config import settings
 from app.core.logging import logger
+
 
 class OSRMClient:
     def __init__(self):
@@ -20,7 +23,7 @@ class OSRMClient:
 
         # Format: lon,lat;lon,lat;...
         coord_string = ";".join([f"{lon},{lat}" for lon, lat in coordinates])
-        
+
         # Endpoint: /route/v1/{profile}/{coordinates}
         # Parameter: geometries=geojson agar langsung dapat format standard GeoJSON LineString
         url = f"{self.base_url}/route/v1/{self.profile}/{coord_string}?geometries=geojson&overview=full"
@@ -30,20 +33,20 @@ class OSRMClient:
                 response = await client.get(url, timeout=10.0)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 if data.get("code") != "Ok":
                     logger.error(f"OSRM returned non-Ok code: {data}")
                     raise Exception(f"OSRM Error: {data.get('message', 'Unknown')}")
-                
+
                 route = data["routes"][0]
-                
+
                 # Jarak dalam meter
                 distance_m = route["distance"]
                 # Durasi asli OSRM dalam detik, kita konversi ke menit
                 duration_min = round(route["duration"] / 60)
                 # Geometry dalam bentuk GeoJSON LineString
                 geometry_geojson = route["geometry"]
-                
+
                 return {
                     "distance_meters": distance_m,
                     "duration_minutes": duration_min,
@@ -57,7 +60,7 @@ class OSRMClient:
         except Exception as e:
             logger.error(f"Error parsing OSRM response: {str(e)}")
             return self._mock_route(coordinates)
-            
+
     def _mock_route(self, coordinates: List[Tuple[float, float]]) -> Dict[str, Any]:
         """Fallback mock jika server OSRM mati."""
         logger.warning("Returning MOCK OSRM Route.")

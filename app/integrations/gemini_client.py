@@ -5,12 +5,12 @@ from google import genai
 from google.genai import types
 
 from app.core.config import settings
-from app.core.logging import logger
 from app.core.constants import (
-    DEFAULT_TIME_LIMIT_MINUTES,
     DEFAULT_BUDGET_IDR,
-    DEFAULT_SEARCH_RADIUS_METER
+    DEFAULT_SEARCH_RADIUS_METER,
+    DEFAULT_TIME_LIMIT_MINUTES,
 )
+from app.core.logging import logger
 
 
 class GeminiClient:
@@ -122,14 +122,14 @@ class GeminiClient:
                 clean_text = clean_text[:-3]
 
             parsed = json.loads(clean_text.strip())
-            
+
             # Sanitasi fallback ringan jika gemini lalai
             parsed.setdefault("time_limit_minutes", DEFAULT_TIME_LIMIT_MINUTES)
             parsed.setdefault("budget_idr", DEFAULT_BUDGET_IDR)
             parsed.setdefault("search_radius_meter", DEFAULT_SEARCH_RADIUS_METER)
             parsed.setdefault("interest_categories", "bebas")
             parsed.setdefault("avoid_crowds", False)
-            
+
             return parsed
 
         except json.JSONDecodeError as e:

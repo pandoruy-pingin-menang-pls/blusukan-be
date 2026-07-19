@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field
+
 
 class GenerateItineraryRequest(BaseModel):
     raw_query: str = Field(..., description="Permintaan natural language dari turis")
@@ -28,6 +30,6 @@ class ItineraryResponse(BaseModel):
     estimated_duration_minutes: Optional[int] = None
     status: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
