@@ -15,6 +15,8 @@ from app.modules.merchant.models import Merchant
 from app.modules.catalog.models import MerchantCatalogItem
 from app.modules.events.models import Event
 from app.modules.routing.models import Itinerary
+from app.modules.transactions.models import Transaction
+from app.modules.gamification.models import Stamp, Promo, PromoRedemption
 
 config = context.config
 

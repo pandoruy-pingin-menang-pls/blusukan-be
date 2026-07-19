@@ -71,3 +71,35 @@ class ItineraryNotFoundException(HTTPException):
 class InventoryRecommendationNotFoundException(HTTPException):
     def __init__(self):
         super().__init__(status_code=404, detail={"error_code": "INVENTORY_RECOMMENDATION_NOT_FOUND", "message": "Belum ada rekomendasi stok untuk hari ini."})
+
+class InsufficientStampsException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "INSUFFICIENT_STAMPS", "message": "Stamp tidak cukup untuk menukar promo ini."})
+
+class RedemptionCodeExpiredException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "REDEMPTION_CODE_EXPIRED", "message": "Kode penukaran sudah kedaluwarsa."})
+
+class RedemptionAlreadyUsedException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=409, detail={"error_code": "REDEMPTION_ALREADY_USED", "message": "Kode penukaran sudah digunakan."})
+
+class PromoNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "PROMO_NOT_FOUND", "message": "Promo tidak ditemukan."})
+
+class RedemptionNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "REDEMPTION_NOT_FOUND", "message": "Kode penukaran tidak valid."})
+
+class InvalidTransactionException(HTTPException):
+    def __init__(self, message="Nominal transaksi tidak valid."):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_TRANSACTION", "message": message})
+
+class ItineraryOwnershipException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=403, detail={"error_code": "FORBIDDEN_NOT_OWNER", "message": "Itinerary bukan milik Anda."})
+
+class TransactionNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "TRANSACTION_NOT_FOUND", "message": "Transaksi tidak ditemukan."})
