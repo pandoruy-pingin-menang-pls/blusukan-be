@@ -67,3 +67,7 @@ class RoutingNoMerchantsException(HTTPException):
 class ItineraryNotFoundException(HTTPException):
     def __init__(self):
         super().__init__(status_code=404, detail={"error_code": "ITINERARY_NOT_FOUND", "message": "Itinerary tidak ditemukan."})
+
+class InventoryRecommendationNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "INVENTORY_RECOMMENDATION_NOT_FOUND", "message": "Belum ada rekomendasi stok untuk hari ini."})

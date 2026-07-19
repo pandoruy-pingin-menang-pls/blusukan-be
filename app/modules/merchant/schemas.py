@@ -1,14 +1,21 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
+class MerchantCategoryEnum(str, Enum):
+    KULINER_PANAS = "KULINER_PANAS"
+    KULINER_DINGIN = "KULINER_DINGIN"
+    KERAJINAN = "KERAJINAN"
+    LAINNYA = "LAINNYA"
+
 class MerchantBase(BaseModel):
     name: str = Field(..., max_length=100, description="Nama warung atau toko")
     description: Optional[str] = Field(None, description="Deskripsi toko")
-    category: Optional[str] = Field(None, max_length=50, description="Kategori toko (misal: Makanan, Minuman)")
+    category: Optional[MerchantCategoryEnum] = Field(None, description="Kategori toko untuk keperluan kalkulator stok")
     address: Optional[str] = Field(None, description="Alamat teks lengkap")
 
 
