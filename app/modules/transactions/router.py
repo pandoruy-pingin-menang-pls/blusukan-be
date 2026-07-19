@@ -10,7 +10,6 @@ from app.modules.merchant.dependencies import require_merchant_ownership
 from app.modules.merchant.models import Merchant
 from app.modules.transactions.schemas import (
     PaginatedTransactionResponse,
-    QRISResponse,
     TransactionCreate,
     TransactionResponse,
     TransactionSummaryResponse,
@@ -79,18 +78,3 @@ async def get_transaction_summary(
     Melihat ringkasan transaksi hari ini (total omzet & jumlah transaksi).
     """
     return await transaction_service.get_transaction_summary(db, merchant.id)
-
-
-@router.get(
-    "/{id}/qris",
-    response_model=QRISResponse,
-)
-async def get_qris(
-    id: UUID,
-    current_user: User = Depends(get_current_user),
-    merchant: Merchant = Depends(require_merchant_ownership),
-):
-    """
-    Mengambil URL QRIS statis milik merchant.
-    """
-    return {"qris_image_url": merchant.qris_image_url}

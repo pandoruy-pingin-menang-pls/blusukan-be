@@ -39,5 +39,4 @@ class PaginatedTransactionResponse(BaseModel):
     limit: int
 
 
-class QRISResponse(BaseModel):
-    qris_image_url: Optional[str] = None
+
