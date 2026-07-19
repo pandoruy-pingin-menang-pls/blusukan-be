@@ -37,15 +37,15 @@ def test_m_event_multiple_clamp():
 
 def test_m_weather_rain_extreme_minus_combo():
     # Cuaca hujan, kategori minuman es (extreme minus)
-    m_weather = calculate_m_weather("Rain", "minuman es / cold beverage")
+    m_weather = calculate_m_weather("Rain", "KULINER_DINGIN")
     assert m_weather == -0.20
 
-    m_weather_retail = calculate_m_weather("Rain", "baju / retail")
+    m_weather_retail = calculate_m_weather("Rain", "KERAJINAN")
     assert m_weather_retail == -0.30
 
 def test_m_weather_sunny_plus_combo():
     # Cuaca cerah, kategori minuman es
-    m_weather = calculate_m_weather("Sunny", "minuman es")
+    m_weather = calculate_m_weather("Sunny", "KULINER_DINGIN")
     assert m_weather == 0.25
 
 def test_calculate_predicted_stock_clamp_to_zero():

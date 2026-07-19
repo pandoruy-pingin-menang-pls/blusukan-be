@@ -28,20 +28,20 @@ def calculate_m_weather(weather_condition: str, category: str) -> float:
     Hitung multiplier berdasarkan cuaca dan kategori jualan.
     """
     weather = weather_condition.lower() if weather_condition else ""
-    cat = category.lower() if category else ""
+    cat = category.upper() if category else ""
 
     if weather in ["rain", "thunderstorm", "drizzle"]:
-        if "hot" in cat or "hangat" in cat or "makanan" in cat:
+        if cat == "KULINER_PANAS":
             return constants.M_WEATHER_RAIN_HOT_CULINARY
-        if "cold" in cat or "es" in cat or "minuman dingin" in cat:
+        if cat == "KULINER_DINGIN":
             return constants.M_WEATHER_RAIN_COLD_BEVERAGE
-        if "retail" in cat or "kerajinan" in cat or "baju" in cat:
+        if cat == "KERAJINAN":
             return constants.M_WEATHER_RAIN_RETAIL
-
+            
     if weather in ["clear", "sunny"]:
-        if "cold" in cat or "es" in cat or "minuman dingin" in cat:
+        if cat == "KULINER_DINGIN":
             return constants.M_WEATHER_SUNNY_COLD_BEVERAGE
-
+            
     return 0.0
 
 def calculate_predicted_stock(baseline: int, m_event: float, m_weather: float) -> int:

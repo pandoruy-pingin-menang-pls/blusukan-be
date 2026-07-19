@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import MerchantNotFoundException
+from app.core.exceptions import MerchantNotFoundException, InventoryRecommendationNotFoundException
 from app.modules.inventory.models import InventoryRecommendation
 from app.modules.merchant.models import Merchant
 
@@ -30,7 +30,7 @@ async def get_today_recommendation(db: AsyncSession, merchant_id: UUID, target_d
     res = await db.execute(stmt)
     rec = res.scalars().first()
     if not rec:
-        raise HTTPException(status_code=404, detail="Belum ada rekomendasi stok untuk hari ini.")
+        raise InventoryRecommendationNotFoundException()
     return rec
 
 async def trigger_celery_recalc():
