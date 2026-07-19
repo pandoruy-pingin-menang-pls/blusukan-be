@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     GEMINI_API_KEY: str
-    GEMINI_MODEL_TEXT: str = "gemini-2.5-flash"
-    GEMINI_MODEL_VISION: str = "gemini-2.5-flash"
-    GEMINI_EMBEDDING_MODEL: str = "text-embedding-004"
+    GEMINI_MODEL_TEXT: str = "gemini-3.5-flash"
+    GEMINI_MODEL_VISION: str = "gemini-3.5-flash"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     REDIS_URL: str
     CELERY_BROKER_URL: str
     WEATHER_API_KEY: str

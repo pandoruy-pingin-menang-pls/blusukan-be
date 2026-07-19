@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import cast, func, select, text
+from geoalchemy2 import Geography
+from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import (
@@ -87,16 +88,16 @@ class RoutingService:
             select(
                 Merchant,
                 func.ST_Distance(
-                    cast(Merchant.location, text("geography")),
-                    func.ST_GeomFromEWKT(origin_pt).cast(text("geography"))
+                    cast(Merchant.location, Geography(srid=4326)),
+                    func.ST_GeographyFromText(origin_pt)
                 ).label("distance_m"),
-                func.ST_X(cast(Merchant.location, text("geometry"))).label("lon"),
-                func.ST_Y(cast(Merchant.location, text("geometry"))).label("lat")
+                func.ST_X(Merchant.location).label("lon"),
+                func.ST_Y(Merchant.location).label("lat")
             )
             .where(
                 func.ST_DWithin(
-                    cast(Merchant.location, text("geography")),
-                    func.ST_GeomFromEWKT(origin_pt).cast(text("geography")),
+                    cast(Merchant.location, Geography(srid=4326)),
+                    func.ST_GeographyFromText(origin_pt),
                     radius
                 )
             )
