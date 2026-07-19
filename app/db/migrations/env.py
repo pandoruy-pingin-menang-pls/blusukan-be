@@ -13,6 +13,8 @@ from app.db.base import Base
 from app.modules.auth.models import User, RefreshToken
 from app.modules.merchant.models import Merchant
 from app.modules.catalog.models import MerchantCatalogItem
+from app.modules.events.models import Event
+from app.modules.routing.models import Itinerary
 
 config = context.config
 

@@ -24,5 +24,7 @@ class MerchantResponse(MerchantBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     model_config = {"from_attributes": True}

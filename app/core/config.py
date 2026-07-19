@@ -12,13 +12,13 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     GEMINI_API_KEY: str
-    GEMINI_MODEL_TEXT: str = "gemini-2.5-flash"
-    GEMINI_MODEL_VISION: str = "gemini-2.5-flash"
-    GEMINI_EMBEDDING_MODEL: str = "text-embedding-004"
+    GEMINI_MODEL_TEXT: str = "gemini-3.5-flash"
+    GEMINI_MODEL_VISION: str = "gemini-3.5-flash"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     REDIS_URL: str
     CELERY_BROKER_URL: str
     WEATHER_API_KEY: str
-    OSRM_BASE_URL: str = "http://localhost:5000"
+    OSRM_BASE_URL: str = "https://router.project-osrm.org"
     SUPABASE_STORAGE_BUCKET_MENU: str = "merchant-menus"
     SUPABASE_STORAGE_BUCKET_VOICE: str = "merchant-voicenotes"
     MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024
