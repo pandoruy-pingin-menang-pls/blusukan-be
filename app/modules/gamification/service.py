@@ -24,6 +24,7 @@ from app.modules.gamification.models import (
     Stamp,
 )
 from app.modules.gamification.schemas import PromoCreate
+from app.modules.auth.models import User
 
 
 class GamificationService:
@@ -108,15 +109,12 @@ class GamificationService:
     async def redeem_promo(db: AsyncSession, user_id: UUID, promo_id: UUID):
         now = datetime.now(timezone.utc)
 
-        # 1. Row-level lock pada jumlah stamp (menggunakan seleksi stamp untuk user)
-        # Menghindari race condition jika user menukar 2 promo bersamaan
-        stamp_stmt = (
-            select(func.count(Stamp.id))
-            .where(Stamp.user_id == user_id)
-            .with_for_update()
-        )
-        result = await db.execute(stamp_stmt)
-        user_stamp_count = result.scalar_one()
+        # 1. Row-level lock pada user untuk menghindari race condition
+        # (PostgreSQL tidak mengizinkan FOR UPDATE pada fungsi agregat)
+        user_stmt = select(1).select_from(User).where(User.id == user_id).with_for_update()
+        await db.execute(user_stmt)
+        
+        user_stamp_count = await GamificationService.get_total_stamps(db, user_id)
 
         # 2. Ambil data promo
         promo_stmt = select(Promo).where(Promo.id == promo_id)
