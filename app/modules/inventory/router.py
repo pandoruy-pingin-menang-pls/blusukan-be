@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user
 from app.modules.inventory import schemas, service
-from app.modules.merchant.dependencies import require_merchant_owner
+from app.modules.merchant.dependencies import require_merchant_ownership
 
 router = APIRouter(prefix="/merchants", tags=["Inventory Predictive Stock"])
 
@@ -18,7 +18,7 @@ async def update_baseline_inventory(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    await require_merchant_owner(db, merchant_id, user.id)
+    await require_merchant_ownership(merchant_id, user, db)
     await service.update_baseline_inventory(db, merchant_id, payload.baseline_inventory)
     return {"message": "Baseline inventory berhasil diperbarui."}
 
@@ -28,7 +28,7 @@ async def get_today_recommendation(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    await require_merchant_owner(db, merchant_id, user.id)
+    await require_merchant_ownership(merchant_id, user, db)
     today = datetime.now(timezone.utc).date()
     rec = await service.get_today_recommendation(db, merchant_id, today)
     return rec

@@ -2,6 +2,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 from app.core.config import settings
+import ssl
 
 # Inisialisasi Celery App
 celery_app = Celery(
@@ -25,6 +26,12 @@ celery_app.conf.update(
         },
     }
 )
+
+if str(settings.CELERY_BROKER_URL).startswith("rediss://"):
+    celery_app.conf.update(
+        broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+        redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE}
+    )
 
 # Load tasks
 celery_app.autodiscover_tasks(["app.workers.tasks_stock_recalc"], force=True)
