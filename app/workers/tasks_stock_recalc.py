@@ -58,17 +58,17 @@ async def process_merchant_stock(db: AsyncSession, merchant: Merchant, events: l
 
     # 4. Generate NLG dari Gemini
     prompt = f"""
-    Kamu adalah asisten UMKM (Blusukan AI). Buatlah saran 1 paragraf singkat (maksimal 3 kalimat) 
+    Kamu adalah asisten UMKM (Blusukan AI). Buatlah saran 1 paragraf singkat (maksimal 3 kalimat)
     untuk merchant bernama {merchant.name} (kategori: {merchant.category}).
-    
+
     Kondisi saat ini:
     - Cuaca: {weather_condition}
     - Ada {len(event_dicts)} event terdekat.
-    
+
     Rekomendasi stok AI (Kategori -> Jumlah):
     {json.dumps(recommended_stock)}
-    
-    Gunakan nada yang profesional tapi ramah. Jangan jelaskan perhitungannya, cukup sarankan untuk 
+
+    Gunakan nada yang profesional tapi ramah. Jangan jelaskan perhitungannya, cukup sarankan untuk
     menyiapkan stok sesuai angka tersebut karena kondisi cuaca/event.
     """
 

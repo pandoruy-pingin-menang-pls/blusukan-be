@@ -39,7 +39,7 @@ async def test_register_merchant_success(mock_db_session):
 
     merchant_in = MerchantCreate(
         name="Warung Kopi",
-        category="Minuman",
+        category="KULINER_PANAS",
         address="Jl. Sudirman",
         latitude=-7.5,
         longitude=110.8
@@ -81,7 +81,7 @@ async def test_register_merchant_duplicate(mock_db_session):
 
     merchant_in = MerchantCreate(
         name="Toko Kedua",
-        category="Makanan",
+        category="KULINER_PANAS",
         latitude=-7.5,
         longitude=110.8
     )

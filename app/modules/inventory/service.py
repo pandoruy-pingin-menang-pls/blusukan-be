@@ -2,11 +2,13 @@ from datetime import date
 from typing import Dict
 from uuid import UUID
 
-from fastapi import HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import MerchantNotFoundException, InventoryRecommendationNotFoundException
+from app.core.exceptions import (
+    InventoryRecommendationNotFoundException,
+    MerchantNotFoundException,
+)
 from app.modules.inventory.models import InventoryRecommendation
 from app.modules.merchant.models import Merchant
 

@@ -37,11 +37,11 @@ def calculate_m_weather(weather_condition: str, category: str) -> float:
             return constants.M_WEATHER_RAIN_COLD_BEVERAGE
         if cat == "KERAJINAN":
             return constants.M_WEATHER_RAIN_RETAIL
-            
+
     if weather in ["clear", "sunny"]:
         if cat == "KULINER_DINGIN":
             return constants.M_WEATHER_SUNNY_COLD_BEVERAGE
-            
+
     return 0.0
 
 def calculate_predicted_stock(baseline: int, m_event: float, m_weather: float) -> int:
