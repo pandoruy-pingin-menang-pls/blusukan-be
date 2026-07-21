@@ -35,7 +35,7 @@ async def admin_create_event(
 ):
     """
     Admin: Buat event baru secara manual.
-    Status otomatis menjadi `pending_review` — tidak ada auto-approve.
+    Status otomatis menjadi `APPROVED` karena dibuat langsung oleh Admin.
     """
     event = await event_service.create_event(db, event_in, admin)
     return EventCreateResponse(event_id=event.id, status=event.status)

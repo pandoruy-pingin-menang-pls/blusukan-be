@@ -71,7 +71,8 @@ async def create_event(db: AsyncSession, event_in: EventCreate, admin: User) -> 
         estimated_attendee_count=event_in.estimated_attendee_count,
         start_datetime=event_in.start_datetime,
         end_datetime=event_in.end_datetime,
-        status=EventStatus.PENDING_REVIEW,
+        status=EventStatus.APPROVED,
+        reviewed_by_admin_id=admin.id,
     )
     db.add(new_event)
     await db.commit()

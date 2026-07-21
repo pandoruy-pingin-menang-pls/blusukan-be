@@ -58,3 +58,19 @@ async def confirm_catalog(
     """
     items = await catalog_service.confirm_catalog(db, merchant, request)
     return items
+
+@router.get(
+    "/{id}/catalog",
+    response_model=List[CatalogItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get Merchant Catalog"
+)
+async def get_merchant_catalog(
+    id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Publik: Melihat daftar menu/katalog dari sebuah merchant.
+    """
+    return await catalog_service.list_catalog_items(db, str(id))
+

@@ -99,4 +99,14 @@ class CatalogService:
 
         return inserted_items
 
+    @staticmethod
+    async def list_catalog_items(db: AsyncSession, merchant_id: str) -> List[MerchantCatalogItem]:
+        from sqlalchemy import select
+        result = await db.execute(
+            select(MerchantCatalogItem)
+            .where(MerchantCatalogItem.merchant_id == merchant_id)
+            .order_by(MerchantCatalogItem.created_at.desc())
+        )
+        return result.scalars().all()
+
 catalog_service = CatalogService()
