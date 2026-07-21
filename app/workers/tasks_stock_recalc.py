@@ -121,28 +121,27 @@ async def _calculate_daily_stock_async():
     """
     Main loop async untuk menghitung daily stock.
     """
+    # Ambil daftar ID merchant aktif terlebih dahulu
     async with async_session_maker() as db:
-        # Ambil semua merchant aktif
-        result = await db.execute(select(Merchant).where(Merchant.is_active.is_(True)))
-        merchants = result.scalars().all()
+        result = await db.execute(select(Merchant.id).where(Merchant.is_active.is_(True)))
+        merchant_ids = result.scalars().all()
 
-        if not merchants:
-            logger.info("No active merchants found for stock recalc.")
-            return
+    if not merchant_ids:
+        logger.info("No active merchants found for stock recalc.")
+        return
 
-        semaphore = asyncio.Semaphore(10) # Maksimal 10 request AI bersamaan
+    semaphore = asyncio.Semaphore(10) # Maksimal 10 request AI bersamaan
 
-        async def bounded_process(merchant):
-            async with semaphore:
+    async def bounded_process(m_id):
+        async with semaphore:
+            async with async_session_maker() as local_db:
                 try:
-                    # Ambil cuaca (bisa di cache, tapi untuk simpel query aja per merchant location)
-                    # Karena lokasi merchant beda-beda, kita get dari lon/lat
-                    # Note: Merchant.location is geometry. We need lon/lat
-                    # We can use func.ST_X and func.ST_Y
-                    # Wait, func.ST_X(Merchant.location) might need cast to geometry if it's geography
-                    # We can just get it from the merchant directly if we query it with the merchant
-                    # But we already have the merchant object. We'll do a quick query.
-                    loc_res = await db.execute(
+                    res = await local_db.execute(select(Merchant).where(Merchant.id == m_id))
+                    merchant = res.scalars().first()
+                    if not merchant:
+                        return
+
+                    loc_res = await local_db.execute(
                         select(func.ST_X(Merchant.location), func.ST_Y(Merchant.location))
                         .where(Merchant.id == merchant.id)
                     )
@@ -155,26 +154,31 @@ async def _calculate_daily_stock_async():
                     weather = await weather_client.get_current_weather(lat, lon)
                     weather = weather or "Clear" # Fallback
 
-                    # Cari event terdekat (dalam 5km)
+                    # Cari event terdekat
                     today = datetime.now(timezone.utc).date()
                     events_stmt = (
                         select(Event, func.ST_DistanceSphere(merchant.location, Event.location).label("distance_m"))
                         .where(Event.status == EventStatus.APPROVED)
                         .where(func.date(Event.start_datetime) == today)
+                        # Pre-filter ST_DWithin menggunakan derajat (~5km = 0.05 derajat)
+                        .where(func.ST_DWithin(merchant.location, Event.location, 0.05))
+                        # Exact meter precision
                         .where(func.ST_DistanceSphere(merchant.location, Event.location) <= 5000)
                     )
-                    events_res = await db.execute(events_stmt)
+                    events_res = await local_db.execute(events_stmt)
                     events = events_res.all() # list of (Event, distance_m)
 
-                    await process_merchant_stock(db, merchant, events, weather)
+                    await process_merchant_stock(local_db, merchant, events, weather)
+                    await local_db.commit()
                 except Exception as e:
-                    logger.error(f"Error processing stock for merchant {merchant.id}: {e}")
+                    await local_db.rollback()
+                    logger.error(f"Error processing stock for merchant {m_id}: {e}")
 
-        tasks = [bounded_process(m) for m in merchants]
-        await asyncio.gather(*tasks)
+    tasks = [bounded_process(m_id) for m_id in merchant_ids]
+    await asyncio.gather(*tasks)
 
-        await db.commit()
-        logger.info(f"Successfully processed stock predictions for {len(merchants)} merchants.")
+    logger.info(f"Successfully processed stock predictions for {len(merchant_ids)} merchants.")
+
 
 @shared_task(name="app.workers.tasks_stock_recalc.calculate_daily_stock")
 def calculate_daily_stock():
