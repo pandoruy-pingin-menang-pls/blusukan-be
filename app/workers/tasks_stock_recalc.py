@@ -12,7 +12,8 @@ from app.core.logging import logger
 from app.db.session import async_session_maker
 from app.integrations.gemini_client import gemini_client
 from app.integrations.weather_client import weather_client
-from app.modules.events.models import Event
+from app.modules.auth.models import User  # Fixed: Import User to resolve SQLAlchemy mapper
+from app.modules.events.models import Event, EventStatus
 from app.modules.inventory.calculator import (
     calculate_m_event,
     calculate_m_weather,
@@ -58,18 +59,25 @@ async def process_merchant_stock(db: AsyncSession, merchant: Merchant, events: l
 
     # 4. Generate NLG dari Gemini
     prompt = f"""
-    Kamu adalah asisten UMKM (Blusukan AI). Buatlah saran 1 paragraf singkat (maksimal 3 kalimat)
-    untuk merchant bernama {merchant.name} (kategori: {merchant.category}).
+    Kamu adalah "Mblus", asisten AI dari aplikasi Blusukan.
+    Sapa pengguna dengan sebutan "Juragan" atau "Juragan Mblus".
+    Toko mereka bernama {merchant.name} (kategori: {merchant.category}).
 
     Kondisi saat ini:
     - Cuaca: {weather_condition}
-    - Ada {len(event_dicts)} event terdekat.
+    - Event keramaian terdekat: Ada {len(event_dicts)} event.
 
-    Rekomendasi stok AI (Kategori -> Jumlah):
+    Rekomendasi stok jualan (Kategori -> Porsi/Item):
     {json.dumps(recommended_stock)}
 
-    Gunakan nada yang profesional tapi ramah. Jangan jelaskan perhitungannya, cukup sarankan untuk
-    menyiapkan stok sesuai angka tersebut karena kondisi cuaca/event.
+    Tugasmu:
+    1. Berikan pesan semangat yang to the point dan profesional tapi ramah (jangan lebay/berlebihan).
+    2. Hubungkan saranmu dengan kondisi cuaca atau event hari ini.
+    3. DILARANG KERAS menggunakan emoji apapun.
+    4. Tampilkan rekomendasi stok dalam bentuk **bullet points** (titik/poin).
+    5. Maksimal 2-3 kalimat pengantar saja sebelum menampilkan bullet points.
+    6. Gunakan awalan kalimat "Mblus [kata kerja]..." atau variasinya sebelum memberikan list stok.
+    7. Akhiri dengan satu kalimat singkat penyemangat yang profesional (misal: "Tetap semangat berdagang hari ini!").
     """
 
     ai_text = "Sistem AI sedang sibuk. Silakan gunakan angka yang tertera sebagai acuan."
@@ -152,7 +160,7 @@ async def _calculate_daily_stock_async():
                     today = datetime.now(timezone.utc).date()
                     events_stmt = (
                         select(Event, func.ST_Distance(merchant.location, Event.location).label("distance_m"))
-                        .where(Event.status == "APPROVED")
+                        .where(Event.status == EventStatus.APPROVED)
                         .where(func.date(Event.start_datetime) == today)
                         .where(func.ST_DWithin(merchant.location, Event.location, 5000))
                     )

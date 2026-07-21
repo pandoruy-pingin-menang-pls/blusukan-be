@@ -32,7 +32,7 @@ class Event(Base):
         server_default=func.gen_random_uuid(),
     )
     name = Column(String(200), nullable=False)
-    genre = Column(Enum(EventGenre), nullable=True)
+    genre = Column(Enum(EventGenre, values_callable=lambda obj: [e.value for e in obj]), nullable=True)
 
     location = Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)
     venue_name = Column(String(150), nullable=True)
@@ -42,7 +42,7 @@ class Event(Base):
     end_datetime = Column(DateTime(timezone=True), nullable=False)
 
     status = Column(
-        Enum(EventStatus),
+        Enum(EventStatus, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
         default=EventStatus.PENDING_REVIEW,
         server_default="pending_review",
