@@ -1,12 +1,13 @@
+import enum
 import uuid
-from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import enum
 
 from app.db.base import Base
+
 
 class UserRole(str, enum.Enum):
     WISATAWAN = "wisatawan"
@@ -22,7 +23,7 @@ class User(Base):
     full_name = Column(String(150), nullable=True)
     role = Column(Enum(UserRole), default=UserRole.WISATAWAN, server_default="wisatawan", nullable=False)
     has_merchant_profile = Column(Boolean, default=False, server_default="false", nullable=False)
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
@@ -35,7 +36,7 @@ class RefreshToken(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     token_hash = Column(String, nullable=False)
-    
+
     expires_at = Column(DateTime(timezone=True), nullable=False)
     revoked_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

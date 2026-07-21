@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+
 class OTPExpiredException(HTTPException):
     def __init__(self):
         super().__init__(status_code=400, detail={"error_code": "OTP_EXPIRED", "message": "Kode OTP sudah kedaluwarsa."})
@@ -36,3 +37,69 @@ class TokenReuseDetectedException(HTTPException):
 class IngestLimitReachedException(HTTPException):
     def __init__(self):
         super().__init__(status_code=429, detail={"error_code": "INGEST_LIMIT_REACHED", "message": "Batas limit tercapai."})
+
+class DuplicateMerchantException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "MERCHANT_ALREADY_EXISTS", "message": "Anda sudah memiliki profil toko. 1 Akun hanya bisa membuat 1 toko."})
+
+class MerchantNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "MERCHANT_NOT_FOUND", "message": "Profil toko tidak ditemukan."})
+
+
+class EventNotFoundException(HTTPException):
+    def __init__(self, event_id: str):
+        super().__init__(status_code=404, detail={"error_code": "EVENT_NOT_FOUND", "message": f"Event dengan ID {event_id} tidak ditemukan atau belum disetujui."})
+
+class InvalidStatusFilterException(HTTPException):
+    def __init__(self, status_filter: str):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_STATUS_FILTER", "message": f"Status '{status_filter}' tidak valid. Pilihan: pending_review, approved, rejected"})
+
+class InvalidDateRangeException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_DATE_RANGE", "message": "end_datetime harus setelah start_datetime."})
+
+
+class RoutingNoMerchantsException(HTTPException):
+    def __init__(self, radius: int):
+        super().__init__(status_code=404, detail={"error_code": "ROUTING_NO_MERCHANTS", "message": f"Tidak ada UMKM Blusukan dalam radius {radius} meter."})
+
+class ItineraryNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "ITINERARY_NOT_FOUND", "message": "Itinerary tidak ditemukan."})
+
+class InventoryRecommendationNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "INVENTORY_RECOMMENDATION_NOT_FOUND", "message": "Belum ada rekomendasi stok untuk hari ini."})
+
+class InsufficientStampsException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "INSUFFICIENT_STAMPS", "message": "Stamp tidak cukup untuk menukar promo ini."})
+
+class RedemptionCodeExpiredException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail={"error_code": "REDEMPTION_CODE_EXPIRED", "message": "Kode penukaran sudah kedaluwarsa."})
+
+class RedemptionAlreadyUsedException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=409, detail={"error_code": "REDEMPTION_ALREADY_USED", "message": "Kode penukaran sudah digunakan."})
+
+class PromoNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "PROMO_NOT_FOUND", "message": "Promo tidak ditemukan."})
+
+class RedemptionNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "REDEMPTION_NOT_FOUND", "message": "Kode penukaran tidak valid."})
+
+class InvalidTransactionException(HTTPException):
+    def __init__(self, message="Nominal transaksi tidak valid."):
+        super().__init__(status_code=400, detail={"error_code": "INVALID_TRANSACTION", "message": message})
+
+class ItineraryOwnershipException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=403, detail={"error_code": "FORBIDDEN_NOT_OWNER", "message": "Itinerary bukan milik Anda."})
+
+class TransactionNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail={"error_code": "TRANSACTION_NOT_FOUND", "message": "Transaksi tidak ditemukan."})

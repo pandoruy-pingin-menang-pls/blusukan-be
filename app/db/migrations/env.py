@@ -1,13 +1,22 @@
 import asyncio
 from logging.config import fileConfig
+
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from alembic import context
 
 from app.core.config import settings
 from app.db.base import Base
+
+# Import semua model di sini agar Alembic bisa menemukannya
 from app.modules.auth.models import User, RefreshToken
+from app.modules.merchant.models import Merchant
+from app.modules.catalog.models import MerchantCatalogItem
+from app.modules.events.models import Event
+from app.modules.routing.models import Itinerary
+from app.modules.transactions.models import Transaction
+from app.modules.gamification.models import Stamp, Promo, PromoRedemption
 
 config = context.config
 
