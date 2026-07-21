@@ -12,7 +12,6 @@ from app.core.logging import logger
 from app.db.session import async_session_maker
 from app.integrations.gemini_client import gemini_client
 from app.integrations.weather_client import weather_client
-from app.modules.auth.models import User  # Fixed: Import User to resolve SQLAlchemy mapper
 from app.modules.events.models import Event, EventStatus
 from app.modules.inventory.calculator import (
     calculate_m_event,
@@ -159,10 +158,10 @@ async def _calculate_daily_stock_async():
                     # Cari event terdekat (dalam 5km)
                     today = datetime.now(timezone.utc).date()
                     events_stmt = (
-                        select(Event, func.ST_Distance(merchant.location, Event.location).label("distance_m"))
+                        select(Event, func.ST_DistanceSphere(merchant.location, Event.location).label("distance_m"))
                         .where(Event.status == EventStatus.APPROVED)
                         .where(func.date(Event.start_datetime) == today)
-                        .where(func.ST_DWithin(merchant.location, Event.location, 5000))
+                        .where(func.ST_DistanceSphere(merchant.location, Event.location) <= 5000)
                     )
                     events_res = await db.execute(events_stmt)
                     events = events_res.all() # list of (Event, distance_m)
@@ -182,5 +181,10 @@ def calculate_daily_stock():
     """
     Entrypoint celery task.
     """
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     loop.run_until_complete(_calculate_daily_stock_async())
