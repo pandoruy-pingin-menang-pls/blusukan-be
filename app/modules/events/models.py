@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+from app.modules.auth.models import User  # noqa: F401
 
 
 class EventGenre(str, enum.Enum):
