@@ -8,3 +8,6 @@ docs_local/
 
 # OSRM Graph Data (Huge files, do not commit!)
 osrm_data/
+
+# Celery
+celerybeat-schedule*
