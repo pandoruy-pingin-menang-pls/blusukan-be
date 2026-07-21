@@ -102,8 +102,9 @@ class CatalogService:
     @staticmethod
     async def list_catalog_items(db: AsyncSession, merchant_id: str) -> List[MerchantCatalogItem]:
         from sqlalchemy import select
+
         from app.modules.merchant.models import Merchant
-        
+
         result = await db.execute(
             select(MerchantCatalogItem)
             .join(Merchant, Merchant.id == MerchantCatalogItem.merchant_id)
