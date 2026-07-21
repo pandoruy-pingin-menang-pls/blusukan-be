@@ -102,9 +102,13 @@ class CatalogService:
     @staticmethod
     async def list_catalog_items(db: AsyncSession, merchant_id: str) -> List[MerchantCatalogItem]:
         from sqlalchemy import select
+        from app.modules.merchant.models import Merchant
+        
         result = await db.execute(
             select(MerchantCatalogItem)
+            .join(Merchant, Merchant.id == MerchantCatalogItem.merchant_id)
             .where(MerchantCatalogItem.merchant_id == merchant_id)
+            .where(Merchant.status == "active")
             .order_by(MerchantCatalogItem.created_at.desc())
         )
         return result.scalars().all()
