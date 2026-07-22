@@ -13,6 +13,7 @@ from app.modules.gamification.schemas import (
     RedemptionResponse,
     StampListResponse,
 )
+from typing import List
 from app.modules.gamification.service import gamification_service
 from app.modules.merchant.dependencies import require_merchant_ownership
 from app.modules.merchant.models import Merchant
@@ -36,6 +37,22 @@ async def create_promo(
     Membuat promo baru yang membutuhkan stamp.
     """
     return await gamification_service.create_promo(db, merchant.id, promo_in)
+
+
+@merchant_promo_router.get(
+    "/{id}/promos",
+    response_model=List[PromoResponse],
+)
+async def get_promos(
+    id: UUID,
+    current_user: User = Depends(get_current_user),
+    merchant: Merchant = Depends(require_merchant_ownership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Mendapatkan daftar promo yang dibuat oleh merchant ini.
+    """
+    return await gamification_service.get_merchant_promos(db, merchant.id)
 
 
 @merchant_promo_router.post(

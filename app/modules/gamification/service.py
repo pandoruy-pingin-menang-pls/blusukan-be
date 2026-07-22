@@ -83,7 +83,18 @@ class GamificationService:
         db.add(promo)
         await db.commit()
         await db.refresh(promo)
+        await db.refresh(promo)
         return promo
+
+    @staticmethod
+    async def get_merchant_promos(db: AsyncSession, merchant_id: UUID):
+        stmt = (
+            select(Promo)
+            .where(Promo.merchant_id == merchant_id)
+            .order_by(Promo.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
 
     @staticmethod
     async def list_available_promos(db: AsyncSession, user_id: UUID):
