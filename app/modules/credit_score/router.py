@@ -13,12 +13,12 @@ router = APIRouter(prefix="/merchants", tags=["Credit Score"])
 
 
 @router.get(
-    "/{merchant_id}/credit-score",
+    "/{id}/credit-score",
     response_model=CreditScoreResponse,
     summary="Get Merchant Credit Score",
 )
 async def get_merchant_credit_score(
-    merchant_id: UUID,
+    id: UUID,
     merchant: Merchant = Depends(require_merchant_ownership),
     db: AsyncSession = Depends(get_db),
 ):

@@ -72,7 +72,7 @@ async def calculate_credit_score(
     total_volume = float(row[1]) if row and row[1] else 0.0
 
     # A. Konsistensi Transaksi
-    score_a = (active_days / CREDIT_SCORE_CONSISTENCY_DAYS) * CREDIT_SCORE_MAX_SCORE
+    score_a = min(active_days / CREDIT_SCORE_CONSISTENCY_DAYS, 1.0) * CREDIT_SCORE_MAX_SCORE
 
     # B. Volume Transaksi
     volume_ratio = min(total_volume / CREDIT_SCORE_VOLUME_THRESHOLD_IDR, 1.0)
