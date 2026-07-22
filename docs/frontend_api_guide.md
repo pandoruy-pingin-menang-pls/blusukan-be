@@ -1,24 +1,22 @@
 # Blusukan API — Panduan Lengkap untuk Tim Frontend
 
-> **Base URL:** `https://<domain>/api`
-> **API Docs (Swagger):** `https://<domain>/api/docs`
-> **Tech Stack FE yang direkomendasikan:** React Native (Expo) + Axios / TanStack Query
+> **Base URL:** `https://blusukan-be.up.railway.app/api`  
+> **Swagger UI:** `https://blusukan-be.up.railway.app/api/docs`  
+> **Local Dev:** `http://127.0.0.1:8000/api` (jalankan `uvicorn app.main:app --reload`)
 
 ---
 
 ## Daftar Isi
 
 1. [Konvensi & Aturan Umum](#1-konvensi--aturan-umum)
-2. [Autentikasi (Auth Flow)](#2-autentikasi-auth-flow)
-3. [Merchant — Onboarding & Profil (Bakul Mode)](#3-merchant--onboarding--profil-bakul-mode)
-4. [Catalog — Ingest Menu via Foto (Bakul Mode)](#4-catalog--ingest-menu-via-foto-bakul-mode)
-5. [Itinerary — Generate Rute Wisata (Dolan Mode)](#5-itinerary--generate-rute-wisata-dolan-mode)
-6. [Events — Kalender Acara (Publik)](#6-events--kalender-acara-publik)
-7. [POS & Transaksi (Bakul Mode)](#7-pos--transaksi-bakul-mode)
-8. [Gamification — Stamp & Promo (Keduanya)](#8-gamification--stamp--promo-keduanya)
-9. [Inventory — Rekomendasi Stok (Bakul Mode)](#9-inventory--rekomendasi-stok-bakul-mode)
-10. [Error Handling](#10-error-handling)
-11. [Enum & Konstanta Referensi](#11-enum--konstanta-referensi)
+2. [User Roles & Akun Bawaan](#2-user-roles--akun-bawaan)
+3. [Auth Flow — Semua Role](#3-auth-flow--semua-role)
+4. [Dolan Mode — Flow Wisatawan](#4-dolan-mode--flow-wisatawan)
+5. [Bakul Mode — Flow Pedagang](#5-bakul-mode--flow-pedagang)
+6. [Admin — Event Management (HITL)](#6-admin--event-management-hitl)
+7. [Events — Publik (Tanpa Auth)](#7-events--publik-tanpa-auth)
+8. [Error Handling](#8-error-handling)
+9. [Enum & Konstanta Referensi](#9-enum--konstanta-referensi)
 
 ---
 
@@ -28,36 +26,52 @@
 Semua endpoint diawali `/api`. Contoh: `/api/auth/login`, `/api/merchants/me`.
 
 ### Autentikasi Header
-Setiap request ke endpoint *protected* wajib menyertakan header:
+Endpoint *protected* wajib menyertakan header:
 ```
 Authorization: Bearer <access_token>
 ```
 Simpan `access_token` dan `refresh_token` di `SecureStore` (Expo) setelah login.
 
 ### Format Tanggal
-Semua field tanggal/waktu menggunakan format **ISO 8601 UTC**: `2026-07-20T12:00:00Z`
+Semua field tanggal/waktu menggunakan **ISO 8601 UTC**: `2026-07-20T12:00:00Z`
 
-### Role User
-| Role | Nilai | Keterangan |
-|------|-------|------------|
-| Wisatawan | `wisatawan` | User default setelah register |
-| Pedagang | `pedagang` | Setelah menyelesaikan `POST /merchants/register` |
-| Admin | `admin` | Hanya untuk admin internal |
-
-### Petunjuk Penting Token
-Setelah `POST /merchants/register`, backend mengembalikan **token baru** dengan `role: "pedagang"`. FE **wajib** mengganti token lama dengan token baru ini agar role merchant aktif di sesi berikutnya.
+### Format Error Standard
+```json
+{ "detail": "Pesan error dalam Bahasa Indonesia" }
+```
 
 ---
 
-## 2. Autentikasi (Auth Flow)
+## 2. User Roles & Akun Bawaan
 
-### Flow Registrasi & Login
+| Role | Nilai di Token | Cara Mendapatkan |
+|------|----------------|-----------------|
+| Wisatawan (Turis) | `wisatawan` | Default setelah `POST /auth/register` |
+| Pedagang (Merchant) | `pedagang` | Setelah `POST /merchants/register` — token **baru** diberikan |
+| Admin | `admin` | Akun pre-seeded |
+
+### Akun Admin (Pre-seeded)
+
+| Field | Nilai |
+|-------|-------|
+| **Email** | `admin@blusukan.com` |
+| **Password** | `adminblusukan123` |
+
+Login dengan akun ini via `POST /api/auth/login` untuk mendapatkan token admin.
+
+---
+
+## 3. Auth Flow — Semua Role
+
+### Flow Umum
 
 ```
-Register → Login → Simpan { access_token, refresh_token, user } → Gunakan access_token di setiap request
+Register → Login → { access_token, refresh_token } → Gunakan access_token di setiap request
+         ↓ token expired (401)
+         Refresh → { access_token baru, refresh_token baru }
 ```
 
-Jika `access_token` expired (error `401`), gunakan `refresh_token` untuk mendapatkan token baru via `POST /auth/refresh`.
+> **Token Rotation:** Setiap `POST /auth/refresh` me-revoke token lama dan mengeluarkan pasangan token baru. Jangan simpan token lama setelah refresh.
 
 ---
 
@@ -77,7 +91,7 @@ Membuat akun baru. Role default: `wisatawan`.
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "uuid:hexstring...",
   "token_type": "bearer",
   "user": {
     "id": "uuid-string",
@@ -104,26 +118,26 @@ Login dengan email & password.
 }
 ```
 
-**Response `200`:** _(Sama dengan response register)_
+**Response `200`:** _(Struktur identik dengan response register)_
 
 ---
 
 ### `POST /api/auth/refresh`
-Mendapatkan access_token baru tanpa login ulang.
+Rotasi token. Refresh token lama langsung di-revoke.
 
 **Request Body:**
 ```json
 {
-  "refresh_token": "<refresh_token>"
+  "refresh_token": "<refresh_token_saat_ini>"
 }
 ```
 
-**Response `200`:** _(Sama dengan response login)_
+**Response `200`:** _(Struktur identik — berisi token baru)_
 
 ---
 
 ### `POST /api/auth/logout`
-Invalidasi refresh_token. Hapus semua token dari storage setelah ini.
+Invalidasi refresh_token. Hapus semua token dari storage lokal setelah ini.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -139,16 +153,27 @@ Invalidasi refresh_token. Hapus semua token dari storage setelah ini.
 ---
 
 ### `GET /api/auth/me`
-Mengambil data profil user yang sedang login.
+Mengambil profil user yang sedang login.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
-**Response `200`:** _(Sama dengan objek `user` di dalam response login)_
+**Response `200`:**
+```json
+{
+  "id": "uuid-string",
+  "email": "user@email.com",
+  "full_name": "Siti Aminah",
+  "role": "wisatawan",
+  "has_merchant_profile": false,
+  "created_at": "2026-07-20T10:00:00Z",
+  "updated_at": null
+}
+```
 
 ---
 
 ### `PATCH /api/auth/me`
-Update data profil user (saat ini hanya `full_name`).
+Update profil user (saat ini: `full_name` saja).
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -163,203 +188,26 @@ Update data profil user (saat ini hanya `full_name`).
 
 ---
 
-## 3. Merchant — Onboarding & Profil (Bakul Mode)
+## 4. Dolan Mode — Flow Wisatawan
 
-### Flow Onboarding Bakul
+User dengan role `wisatawan` bisa generate itinerary, melihat event publik, mengumpulkan stamp, dan menukar promo.
+
+### 4.1 Generate Itinerary
 
 ```
-User Login (role: wisatawan)
-  → POST /merchants/register (kirim data toko)
-  → Response membawa token BARU dengan role "pedagang"
-  → Simpan token baru, user sekarang adalah Pedagang
+Turis input: "mau makan soto, budget 50rb, 2 jam"
+  → POST /api/itineraries  (teks + koordinat GPS)
+  → Backend: Gemini parsing → SAW scoring merchants → OSRM routing
+  → Response: itinerary + waypoints + GeoJSON rute
+  → FE render di peta (react-native-maps / mapbox-gl)
 ```
 
-> [!IMPORTANT]
-> `POST /merchants/register` hanya bisa dipanggil SEKALI per user. Jika dipanggil dua kali, server akan mengembalikan error karena sudah ada merchant profile (`has_merchant_profile: true`).
+> ⏳ Endpoint ini membutuhkan **3–8 detik** karena melibatkan Gemini API + OSRM. Tampilkan loading indicator yang informatif.
 
 ---
 
-### `POST /api/merchants/register`
-Mendaftarkan toko baru. Mengubah role user dari `wisatawan` menjadi `pedagang`.
-
-**Header:** `Authorization: Bearer <access_token>` ✅
-
-**Request Body:**
-```json
-{
-  "name": "Warung Bu Sari",
-  "description": "Warung makanan tradisional Solo, spesialis nasi liwet.",
-  "category": "KULINER_PANAS",
-  "address": "Jl. Slamet Riyadi No. 10, Surakarta",
-  "latitude": -7.5660,
-  "longitude": 110.8203
-}
-```
-
-**Field `category` (Enum):**
-| Nilai | Keterangan |
-|-------|------------|
-| `KULINER_PANAS` | Makanan/minuman panas |
-| `KULINER_DINGIN` | Minuman dingin, es |
-| `KERAJINAN` | Produk kerajinan tangan |
-| `LAINNYA` | Selain kategori di atas |
-
-**Response `201`:** _(Token baru + data merchant — struktur sama dengan login response tapi token sudah ter-upgrade ke role `pedagang`)_
-
----
-
-### `GET /api/merchants/me`
-Mengambil profil toko milik user yang sedang login.
-
-**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang)*
-
-**Response `200`:**
-```json
-{
-  "id": "uuid-merchant",
-  "owner_id": "uuid-user",
-  "name": "Warung Bu Sari",
-  "description": "Warung makanan tradisional Solo",
-  "category": "KULINER_PANAS",
-  "address": "Jl. Slamet Riyadi No. 10",
-  "is_verified": false,
-  "is_active": true,
-  "created_at": "2026-07-20T10:00:00Z",
-  "updated_at": null,
-  "latitude": -7.5660,
-  "longitude": 110.8203
-}
-```
-
-> [!NOTE]
-> **Tentang `is_verified`:** Field ini ada di response tapi saat ini **tidak memblokir fitur apapun** di backend. Merchant baru langsung bisa mengakses semua fitur (POS, catalog, dll) meskipun `is_verified: false`. Endpoint admin untuk verifikasi merchant belum diimplementasikan.
->
-> **Rekomendasi UX di FE:** Cukup tampilkan badge informatif saja:
-> - `is_verified: false` → Badge "Belum Terverifikasi" (kuning/abu)
-> - `is_verified: true` → Badge "Terverifikasi ✓" (hijau)
->
-> **Jangan** memblokir akses fitur berdasarkan field ini.
-
----
-
-## 4. Catalog — Ingest Menu via Foto (Bakul Mode)
-
-### Flow Ingest Catalog (2 Langkah)
-
-```
-Step 1: POST /merchants/{id}/catalog/ingest  → Upload foto menu
-          ↓ Backend kirim ke Gemini Vision API
-          ↓ Gemini ekstrak daftar item sebagai "Draft"
-          Response: { draft_items: [...] }
-
-Step 2: Tampilkan draft_items ke merchant untuk dikoreksi/dikonfirmasi
-          ↓ Merchant edit/tambah/hapus di layar
-Step 3: POST /merchants/{id}/catalog/confirm → Kirim hasil final
-          Response: Daftar menu yang sudah tersimpan di DB
-```
-
-> [!NOTE]
-> `{id}` pada URL adalah **merchant_id** milik merchant yang login. Ambil dari `GET /merchants/me`.
-
----
-
-### `POST /api/merchants/{id}/catalog/ingest`
-Upload foto menu. Backend akan menggunakan Gemini Vision untuk membaca & mengekstrak menu menjadi list draft item.
-
-**Header:** `Authorization: Bearer <access_token>` ✅
-**Content-Type:** `multipart/form-data`
-
-**Form Data:**
-| Field | Tipe | Keterangan |
-|-------|------|------------|
-| `file` | `File` | File gambar (JPG/PNG), maks 10MB |
-
-**Response `200`:**
-```json
-{
-  "message": "Berhasil mengekstrak 3 item dari foto.",
-  "image_url": "https://supabase.../menu-image.jpg",
-  "draft_items": [
-    { "item_name": "Nasi Liwet", "price": 15000, "category": "culinary" },
-    { "item_name": "Es Teh Manis", "price": 5000, "category": "culinary" },
-    { "item_name": "Tempe Goreng", "price": 3000, "category": "culinary" }
-  ]
-}
-```
-
-> [!TIP]
-> Simpan `image_url` dari response ini. Anda perlu mengirimkannya kembali di step `confirm` agar gambar terhubung ke catalog item.
-
----
-
-### `POST /api/merchants/{id}/catalog/confirm`
-Menyimpan item catalog yang sudah dikonfirmasi merchant ke database.
-
-**Header:** `Authorization: Bearer <access_token>` ✅
-**Content-Type:** `application/json`
-
-**Request Body:**
-```json
-{
-  "image_url": "https://supabase.../menu-image.jpg",
-  "items": [
-    {
-      "item_name": "Nasi Liwet",
-      "price": 15000,
-      "category": "culinary",
-      "source_type": "photo"
-    },
-    {
-      "item_name": "Es Jeruk (Tambahan Manual)",
-      "price": 6000,
-      "category": "culinary",
-      "source_type": "manual"
-    }
-  ]
-}
-```
-
-**Field `source_type`:** `"photo"` jika dari hasil AI, `"manual"` jika ditambah/diedit sendiri oleh merchant.
-
-**Response `201`:** Array dari `CatalogItemResponse`
-```json
-[
-  {
-    "id": "uuid-item",
-    "merchant_id": "uuid-merchant",
-    "item_name": "Nasi Liwet",
-    "price": "15000",
-    "category": "culinary",
-    "description_raw": null,
-    "image_url": "https://supabase.../menu-image.jpg",
-    "source_type": "photo",
-    "confidence": "high",
-    "created_at": "2026-07-20T10:00:00Z"
-  }
-]
-```
-
----
-
-## 5. Itinerary — Generate Rute Wisata (Dolan Mode)
-
-### Flow Generate Itinerary
-
-```
-User ketik permintaan natural language: "mau makan soto sama jajan kurang dari 50rb, 2 jam"
-  → POST /itineraries (kirim teks + koordinat GPS saat ini)
-  → Backend: Gemini parsing teks → SAW scoring merchants → OSRM routing
-  → Response: Itinerary lengkap dengan waypoints + GeoJSON rute
-  → FE render di peta (gunakan react-native-maps / mapbox-gl)
-```
-
-> [!IMPORTANT]
-> Endpoint ini **bisa butuh waktu 3-8 detik** karena melibatkan Gemini API + OSRM. Tampilkan loading indicator yang informatif di FE!
-
----
-
-### `POST /api/itineraries`
-Generate itinerary baru berdasarkan input turis.
+#### `POST /api/itineraries`
+Generate itinerary baru.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -377,7 +225,7 @@ Generate itinerary baru berdasarkan input turis.
 {
   "id": "uuid-itinerary",
   "user_id": "uuid-user",
-  "raw_query": "mau makan soto dan cari oleh-oleh batik, budget 100rb, 2 jam aja",
+  "raw_query": "mau makan soto dan cari oleh-oleh batik...",
   "parsed_constraints": {
     "time_limit_minutes": 120,
     "budget_idr": 100000,
@@ -411,8 +259,8 @@ Generate itinerary baru berdasarkan input turis.
     "type": "LineString",
     "coordinates": [
       [110.8203, -7.5660],
-      [110.8180, -7.5620],
-      [110.8250, -7.5700]
+      [110.8200, -7.5655],
+      "...ratusan titik mengikuti belokan jalan (dari OSRM)..."
     ]
   },
   "estimated_duration_minutes": 95,
@@ -421,92 +269,41 @@ Generate itinerary baru berdasarkan input turis.
 }
 ```
 
+**Field Penting:**
+
+| Field | Isi | Digunakan untuk |
+|-------|-----|----------------|
+| `route_geojson.coordinates` | Ratusan titik `[lon, lat]` dari OSRM | Render `<Polyline>` (garis rute) |
+| `waypoints[].lat / .lon` | Koordinat toko tujuan | Render `<Marker>` (pin toko) |
+| `waypoints[].order` | Urutan kunjungan (1, 2, 3...) | Label nomor di marker |
+| `waypoints[].score` | Skor SAW merchant (0.0–1.0) | Badge "rating blusukan" |
+| `waypoints[].predicted_stock` | Estimasi stok (bisa `null`) | Info stok di card merchant |
+
 **Cara Render di Peta (React Native Maps):**
 ```javascript
-import MapView, { Polyline, Marker } from 'react-native-maps';
-
-// ⚠️ PENTING: GeoJSON pakai [lon, lat], bukan [lat, lon]!
-// wp.lat dan wp.lon di waypoints sudah benar dan boleh langsung dipakai.
+// ⚠️ GeoJSON pakai [lon, lat] — balik urutannya untuk react-native-maps!
 const routeCoords = itinerary.route_geojson.coordinates.map(([lon, lat]) => ({
   latitude: lat,
   longitude: lon,
 }));
-
-<MapView>
-  {/* Garis rute jalan kaki mengikuti jalan nyata (dari OSRM) */}
-  <Polyline
-    coordinates={routeCoords}
-    strokeColor="#FF6B35"
-    strokeWidth={4}
-  />
-
-  {/* Marker untuk setiap toko tujuan */}
-  {itinerary.waypoints.map((wp) => (
-    <Marker
-      key={wp.merchant_id}
-      coordinate={{ latitude: wp.lat, longitude: wp.lon }}
-      title={`${wp.order}. ${wp.name}`}
-      description={wp.category}
-    />
-  ))}
-</MapView>
-```
-
-### Penjelasan `route_geojson` (OSRM)
-
-Backend memanggil **OSRM** (profil `foot` / jalan kaki) dengan parameter `geometries=geojson&overview=full`. Kata `overview=full` meminta OSRM mengembalikan **seluruh titik-titik koordinat mengikuti kontur jalan nyata**, bukan garis lurus antar toko.
-
-Hasilnya adalah `LineString` yang bisa berisi **ratusan koordinat** — inilah yang harus di-render sebagai `<Polyline>` di peta.
-
-**Contoh `route_geojson` asli dari OSRM (banyak titik jalan):**
-```json
-{
-  "type": "LineString",
-  "coordinates": [
-    [110.8203, -7.5660],
-    [110.8200, -7.5655],
-    [110.8195, -7.5648],
-    [110.8187, -7.5635],
-    [110.8180, -7.5620],
-    "...ratusan titik mengikuti belokan jalan..."
-  ]
-}
 ```
 
 > [!WARNING]
-> **Jika OSRM mati** (misalnya environment dev tanpa Docker), backend otomatis menggunakan **fallback mock** yang hanya menghubungkan titik-titik dengan **garis lurus** (bukan jalan nyata). Cirinya: `coordinates` hanya berisi tepat sejumlah waypoint, tidak ada titik jalan di antaranya. Pastikan OSRM running di production!
-
-**Perbedaan `route_geojson` vs `waypoints`:**
-| Field | Isi | Digunakan untuk |
-|-------|-----|-----------------|
-| `route_geojson.coordinates` | Ratusan titik jalan dari OSRM `[lon, lat]` | Render `<Polyline>` (garis rute) |
-| `waypoints[].lat` / `waypoints[].lon` | Koordinat titik toko tujuan | Render `<Marker>` (pin toko) |
-| `waypoints[].order` | Urutan kunjungan (1, 2, 3...) | Label nomor di marker |
-| `waypoints[].score` | Skor SAW merchant (0.0–1.0) | Bisa ditampilkan sebagai badge "rating blusukan" |
-| `waypoints[].predicted_stock` | Estimasi stok hari ini (bisa null) | Info stok di card merchant |
-
-
-
-**Field `status` pada Itinerary:**
-| Nilai | Keterangan |
-|-------|------------|
-| `draft` | Baru dibuat, belum dimulai |
-| `active` | Sedang berjalan (setelah PATCH /start) |
-| `completed` | Selesai |
+> **Jika OSRM tidak berjalan** (local dev tanpa Docker), backend otomatis menggunakan **fallback mock** dengan garis lurus antar waypoint. `coordinates` hanya berisi sejumlah waypoint. Jalankan Docker untuk routing nyata.
 
 ---
 
-### `GET /api/itineraries/{itinerary_id}`
-Mengambil detail itinerary berdasarkan ID.
+#### `GET /api/itineraries/{itinerary_id}`
+Mengambil detail itinerary.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
-**Response `200`:** _(Sama dengan response generate itinerary)_
+**Response `200`:** _(Sama dengan response generate)_
 
 ---
 
-### `PATCH /api/itineraries/{itinerary_id}/start`
-Mengubah status itinerary menjadi `active` (ketika turis menekan tombol "Mulai Perjalanan").
+#### `PATCH /api/itineraries/{itinerary_id}/start`
+Ubah status itinerary menjadi `active` (user klik "Mulai Perjalanan").
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -520,74 +317,274 @@ Mengubah status itinerary menjadi `active` (ketika turis menekan tombol "Mulai P
 
 ---
 
-## 6. Events — Kalender Acara (Publik)
+### 4.2 Stamps & Promo Redemption (Dolan Side)
 
-> [!NOTE]
-> Endpoint ini **tidak memerlukan autentikasi** (publik). Digunakan untuk menampilkan daftar event di Solo Raya pada halaman eksplorasi.
+Stamp didapat **otomatis** saat merchant mencatat transaksi dengan `linked_itinerary_id` milik turis.
+
+#### `GET /api/users/me/stamps`
+Lihat semua stamp yang dimiliki.
+
+**Header:** `Authorization: Bearer <access_token>` ✅
+
+**Response `200`:**
+```json
+{
+  "total_stamps": 5,
+  "stamps": [
+    {
+      "id": "uuid-stamp",
+      "merchant_name": "Warung Bu Sari",
+      "awarded_at": "2026-07-20T10:30:00Z"
+    }
+  ]
+}
+```
 
 ---
 
-### `GET /api/events`
-Mengambil daftar semua event yang sudah diapprove admin.
+#### `GET /api/promos/available`
+Daftar promo yang bisa ditukar (stamp cukup).
 
-**Query Params (Opsional):**
-| Param | Tipe | Keterangan |
-|-------|------|------------|
-| `upcoming` | `boolean` | Jika `true`, hanya event yang belum berakhir |
+**Header:** `Authorization: Bearer <access_token>` ✅
 
-**Contoh:** `GET /api/events?upcoming=true`
-
-**Response `200`:** Array of `EventResponse`
+**Response `200`:**
 ```json
 [
   {
-    "id": "uuid-event",
-    "name": "Solo Batik Carnival 2026",
-    "genre": "festival",
-    "venue_name": "Jl. Slamet Riyadi",
-    "estimated_attendee_count": 5000,
-    "start_datetime": "2026-08-01T16:00:00Z",
-    "end_datetime": "2026-08-01T22:00:00Z",
-    "status": "approved",
-    "reviewed_by_admin_id": "uuid-admin",
-    "created_at": "2026-07-15T08:00:00Z",
-    "is_expired": false
+    "promo_id": "uuid-promo",
+    "merchant_name": "Batik Amanah",
+    "title": "Diskon 20% untuk pembelian batik",
+    "discount_type": "percentage",
+    "discount_value": 20.0,
+    "stamp_required_count": 3,
+    "user_stamp_count": 5
   }
 ]
 ```
 
-**Field `genre` (Enum):**
-`cultural` | `sports` | `convention` | `concert` | `festival`
-
 ---
 
-### `GET /api/events/{event_id}`
-Mengambil detail satu event.
+#### `POST /api/promos/{id}/redeem`
+Tukar stamp dengan kode kupon. **Kode berlaku 15 menit.**
 
-**Response `200`:** _(Sama dengan satu objek di atas)_
+**Header:** `Authorization: Bearer <access_token>` ✅  
+**Body:** _(Tidak ada body — `{id}` adalah `promo_id`)_
 
----
-
-## 7. POS & Transaksi (Bakul Mode)
-
-### Flow Transaksi (dari sisi Merchant)
-
-```
-Turis datang ke warung
-  → Turis menunjukkan itinerary ID (misal dari QR Code di app)
-  → Merchant hitung total di kasir
-  → Pembayaran dilakukan secara fisik (tunai / QRIS mandiri / dll) — DI LUAR SISTEM
-  → Merchant konfirmasi pembayaran diterima:
-      POST /merchants/{id}/transactions
-        - linked_itinerary_id: diisi jika turis punya itinerary
-  → Jika itinerary valid → Backend otomatis kasih STAMP ke turis
-  → Response: stamp_awarded: true/false
+**Response `201`:**
+```json
+{
+  "redemption_code": "A3F9C2B1",
+  "expires_at": "2026-07-20T11:00:00Z"
+}
 ```
 
+> **UX:** Tampilkan `redemption_code` sebagai teks besar atau QR Code. Tambahkan countdown timer hingga `expires_at`.
+
 ---
 
-### `POST /api/merchants/{id}/transactions`
-Mencatat transaksi baru. Ini adalah endpoint utama POS.
+## 5. Bakul Mode — Flow Pedagang
+
+### 5.1 Merchant Onboarding
+
+```
+User Login (role: wisatawan)
+  → POST /merchants/register
+  → Response: token BARU dengan role "pedagang" + data merchant
+  → Simpan token baru → user sekarang adalah Pedagang
+```
+
+> [!IMPORTANT]
+> `POST /merchants/register` hanya bisa dipanggil **sekali** per user. Jika dipanggil dua kali, server mengembalikan error karena `has_merchant_profile: true`.
+>
+> Setelah register merchant, **wajib ganti token lama** dengan token baru dari response ini agar role `pedagang` aktif.
+
+---
+
+#### `POST /api/merchants/register`
+Daftarkan toko baru. Role user otomatis di-upgrade ke `pedagang`.
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: wisatawan)*
+
+**Request Body:**
+```json
+{
+  "name": "Warung Bu Sari",
+  "description": "Warung makanan tradisional Solo, spesialis nasi liwet.",
+  "category": "KULINER_PANAS",
+  "address": "Jl. Slamet Riyadi No. 10, Surakarta",
+  "latitude": -7.5660,
+  "longitude": 110.8203
+}
+```
+
+**Response `201`:**
+```json
+{
+  "access_token": "eyJ...(token baru dengan role pedagang)...",
+  "refresh_token": "...",
+  "token_type": "bearer",
+  "user": { ... },
+  "merchant": {
+    "id": "uuid-merchant",
+    "name": "Warung Bu Sari",
+    "category": "KULINER_PANAS",
+    "is_verified": false,
+    "is_active": true,
+    ...
+  }
+}
+```
+
+---
+
+#### `GET /api/merchants/me`
+Lihat profil toko milik user yang sedang login.
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang)*
+
+**Response `200`:**
+```json
+{
+  "id": "uuid-merchant",
+  "owner_id": "uuid-user",
+  "name": "Warung Bu Sari",
+  "description": "Warung makanan tradisional Solo",
+  "category": "KULINER_PANAS",
+  "address": "Jl. Slamet Riyadi No. 10",
+  "is_verified": false,
+  "is_active": true,
+  "latitude": -7.5660,
+  "longitude": 110.8203,
+  "created_at": "2026-07-20T10:00:00Z",
+  "updated_at": null
+}
+```
+
+> [!NOTE]
+> `is_verified` saat ini **tidak memblokir fitur apapun** — merchant langsung bisa akses semua fitur (POS, catalog, dll) meskipun `is_verified: false`. Tampilkan badge informatif saja: ✅ Terverifikasi / ⏳ Menunggu Verifikasi.
+
+---
+
+### 5.2 Catalog Ingestion via AI
+
+```
+Step 1: POST /merchants/{id}/catalog/ingest  → Upload foto menu
+          ↓ Gemini Vision mengekstrak item sebagai "Draft"
+          Response: { draft_items: [...], image_url: "..." }
+
+Step 2: FE tampilkan draft_items ke merchant untuk dikoreksi
+
+Step 3: POST /merchants/{id}/catalog/confirm → Kirim hasil final
+          Response: Array CatalogItemResponse (tersimpan di DB)
+```
+
+> [!TIP]
+> `{id}` pada URL adalah **merchant_id**. Ambil dari `GET /merchants/me`.
+
+---
+
+#### `POST /api/merchants/{id}/catalog/ingest`
+Upload foto menu; Gemini Vision mengekstrak item.
+
+**Header:** `Authorization: Bearer <access_token>` ✅  
+**Content-Type:** `multipart/form-data`
+
+**Form Data:**
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| `file` | `File` | JPG/PNG, maks 10MB |
+
+**Response `200`:**
+```json
+{
+  "message": "Berhasil mengekstrak 3 item dari foto.",
+  "image_url": "https://supabase.../menu-image.jpg",
+  "draft_items": [
+    { "item_name": "Nasi Liwet", "price": 15000, "category": "culinary" },
+    { "item_name": "Es Teh Manis", "price": 5000, "category": "culinary" },
+    { "item_name": "Tempe Goreng", "price": 3000, "category": "culinary" }
+  ]
+}
+```
+
+> Simpan `image_url` — wajib dikirim kembali di step `confirm`.
+
+---
+
+#### `POST /api/merchants/{id}/catalog/confirm`
+Simpan item yang sudah dikonfirmasi ke database + generate pgvector embeddings.
+
+**Header:** `Authorization: Bearer <access_token>` ✅
+
+**Request Body:**
+```json
+{
+  "image_url": "https://supabase.../menu-image.jpg",
+  "items": [
+    {
+      "item_name": "Nasi Liwet",
+      "price": 15000,
+      "category": "culinary",
+      "source_type": "photo"
+    },
+    {
+      "item_name": "Es Jeruk (Tambahan Manual)",
+      "price": 6000,
+      "category": "culinary",
+      "source_type": "manual"
+    }
+  ]
+}
+```
+
+| `source_type` | Keterangan |
+|---------------|------------|
+| `"photo"` | Item dari hasil AI |
+| `"manual"` | Ditambah/diedit manual oleh merchant |
+
+**Response `201`:** Array `CatalogItemResponse`
+```json
+[
+  {
+    "id": "uuid-item",
+    "merchant_id": "uuid-merchant",
+    "item_name": "Nasi Liwet",
+    "price": "15000",
+    "category": "culinary",
+    "description_raw": null,
+    "image_url": "https://supabase.../menu-image.jpg",
+    "source_type": "photo",
+    "confidence": "high",
+    "created_at": "2026-07-20T10:00:00Z"
+  }
+]
+```
+
+---
+
+#### `GET /api/merchants/{id}/catalog`
+Publik: Melihat daftar menu/katalog merchant.
+
+**Autentikasi:** Tidak diperlukan (publik).
+
+**Response `200`:** _(Array CatalogItemResponse)_
+
+---
+
+### 5.3 POS & Transaksi
+
+```
+Turis datang → Merchant hitung total → Pembayaran fisik (tunai/QRIS mandiri)
+  → POST /merchants/{id}/transactions
+      - linked_itinerary_id: ID itinerary turis (jika ada)
+  → Jika itinerary valid → Stamp otomatis diberikan ke turis
+  → Response: { stamp_awarded: true/false }
+```
+
+---
+
+#### `POST /api/merchants/{id}/transactions`
+Catat transaksi baru (endpoint utama POS).
 
 **Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang, harus owner merchant ini)*
 
@@ -608,13 +605,13 @@ Mencatat transaksi baru. Ini adalah endpoint utama POS.
 
 | Field | Wajib | Keterangan |
 |-------|-------|------------|
-| `nominal_value` | ✅ | Total harga transaksi dalam Rupiah |
-| `item_reference` | ❌ | JSON bebas berisi detail item (untuk rekap merchant) |
+| `nominal_value` | ✅ | Total harga (Rupiah) |
+| `item_reference` | ❌ | JSON bebas untuk rekap merchant |
 | `linked_itinerary_id` | ❌ | ID itinerary turis → trigger stamp gamification |
-| `client_reference_id` | ❌ | UUID unik dari FE untuk idempotency (cegah double submit) |
+| `client_reference_id` | ❌ | UUID dari FE untuk idempotency (cegah double-submit) |
 
 > [!TIP]
-> **Idempotency:** Selalu generate UUID unik di FE sebelum submit (`uuid.v4()`). Jika request gagal & di-retry, kirim `client_reference_id` yang sama. Backend tidak akan mencatat transaksi duplikat.
+> **Idempotency:** Generate UUID di FE sebelum submit. Jika request gagal & di-retry, kirim `client_reference_id` yang sama — backend tidak akan mencatat duplikat.
 
 **Response `201`:**
 ```json
@@ -632,11 +629,9 @@ Mencatat transaksi baru. Ini adalah endpoint utama POS.
 }
 ```
 
-> `stamp_awarded: true` → Stamp berhasil diberikan ke turis secara otomatis.
-
 ---
 
-### `GET /api/merchants/{id}/transactions`
+#### `GET /api/merchants/{id}/transactions`
 Riwayat transaksi merchant (paginasi).
 
 **Header:** `Authorization: Bearer <access_token>` ✅
@@ -645,7 +640,7 @@ Riwayat transaksi merchant (paginasi).
 | Param | Default | Keterangan |
 |-------|---------|------------|
 | `page` | `1` | Halaman saat ini |
-| `limit` | `20` | Jumlah item per halaman |
+| `limit` | `20` | Item per halaman |
 
 **Response `200`:**
 ```json
@@ -659,7 +654,7 @@ Riwayat transaksi merchant (paginasi).
 
 ---
 
-### `GET /api/merchants/{id}/transactions/summary`
+#### `GET /api/merchants/{id}/transactions/summary`
 Ringkasan omzet hari ini.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
@@ -674,85 +669,10 @@ Ringkasan omzet hari ini.
 
 ---
 
-## 8. Gamification — Stamp & Promo (Keduanya)
+### 5.4 Gamification — Promo (Bakul Side)
 
-### Flow Gamification (Sisi Turis)
-
-```
-Turis bertransaksi di merchant via itinerary
-  → stamp_awarded: true di response transaksi
-  → GET /users/me/stamps  → Lihat total stamp yang dikumpulkan
-  → GET /promos/available → Lihat promo yang bisa ditukar
-  → POST /promos/{id}/redeem → Tukar stamp → Dapat kode kupon (berlaku 15 menit)
-  → Tunjukkan kode ke kasir
-  → Kasir konfirmasi via: POST /merchants/{mid}/promo-redemptions/{code}/confirm
-```
-
----
-
-### `GET /api/users/me/stamps`
-Melihat semua stamp yang dimiliki wisatawan.
-
-**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: wisatawan)*
-
-**Response `200`:**
-```json
-{
-  "total_stamps": 5,
-  "stamps": [
-    {
-      "id": "uuid-stamp",
-      "merchant_name": "Warung Bu Sari",
-      "awarded_at": "2026-07-20T10:30:00Z"
-    }
-  ]
-}
-```
-
----
-
-### `GET /api/promos/available`
-Menampilkan promo yang bisa diklaim turis berdasarkan jumlah stamp yang dimiliki.
-
-**Header:** `Authorization: Bearer <access_token>` ✅
-
-**Response `200`:** Array of `PromoAvailableResponse`
-```json
-[
-  {
-    "promo_id": "uuid-promo",
-    "merchant_name": "Batik Amanah",
-    "title": "Diskon 20% untuk pembelian batik",
-    "discount_type": "percentage",
-    "discount_value": 20.0,
-    "stamp_required_count": 3,
-    "user_stamp_count": 5
-  }
-]
-```
-
----
-
-### `POST /api/promos/{id}/redeem`
-Tukar stamp dengan kode kupon promo. Kode berlaku **15 menit**.
-
-**Header:** `Authorization: Bearer <access_token>` ✅
-**Body:** _(Tidak ada body, `{id}` adalah promo_id dari URL)_
-
-**Response `201`:**
-```json
-{
-  "redemption_code": "A3F9C2B1",
-  "expires_at": "2026-07-20T11:00:00Z"
-}
-```
-
-> **UX:** Tampilkan `redemption_code` sebagai teks besar atau QR Code. Sertakan countdown timer sampai `expires_at`.
-
----
-
-### `POST /api/merchants/{id}/promos` *(Merchant)*
-Merchant membuat promo baru.
+#### `POST /api/merchants/{id}/promos`
+Buat promo baru yang membutuhkan stamp.
 
 **Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang)*
 
@@ -767,17 +687,15 @@ Merchant membuat promo baru.
 }
 ```
 
-**Field `discount_type`:** `"percentage"` atau `"fixed_amount"`
-
 **Response `201`:** Objek promo yang baru dibuat.
 
 ---
 
-### `POST /api/merchants/{id}/promo-redemptions/{code}/confirm` *(Merchant)*
-Kasir mengkonfirmasi kode kupon dari turis.
+#### `POST /api/merchants/{id}/promo-redemptions/{code}/confirm`
+Kasir konfirmasi kode kupon dari turis.
 
-**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang)*
-**Body:** _(Tidak ada body, `{code}` adalah kode dari turis, contoh: `A3F9C2B1`)_
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang)*  
+**Body:** _(Tidak ada body — `{code}` adalah kode 8 karakter dari turis, misal: `A3F9C2B1`)_
 
 **Response `200`:**
 ```json
@@ -786,25 +704,28 @@ Kasir mengkonfirmasi kode kupon dari turis.
 }
 ```
 
-**Nilai `status` yang mungkin:** `"pending"` | `"redeemed"` | `"expired"`
+| `status` | Keterangan |
+|----------|------------|
+| `pending` | Kode belum dipakai |
+| `redeemed` | Sudah dikonfirmasi merchant |
+| `expired` | Kode kedaluwarsa (>15 menit) |
 
 ---
 
-## 9. Inventory — Rekomendasi Stok (Bakul Mode)
-
-### Flow Rekomendasi Stok
+### 5.5 Inventory — Predictive Stock
 
 ```
-Merchant set baseline stok harian  →  PATCH /merchants/{id}/baseline-inventory
-Setiap hari Celery task berjalan otomatis & menghitung saran stok
-Merchant buka app →  GET /merchants/{id}/inventory-recommendations/today
-Lihat rekomendasi stok berdasarkan cuaca & event sekitar
+Merchant set baseline stok
+  → PATCH /merchants/{id}/baseline-inventory
+Celery task berjalan otomatis setiap hari → hitung saran stok
+Merchant buka app
+  → GET /merchants/{id}/inventory-recommendations/today
 ```
 
 ---
 
-### `PATCH /api/merchants/{merchant_id}/baseline-inventory`
-Merchant mengisi stok dasar harian (bahan baku awal).
+#### `PATCH /api/merchants/{merchant_id}/baseline-inventory`
+Set stok dasar harian.
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -818,7 +739,8 @@ Merchant mengisi stok dasar harian (bahan baku awal).
   }
 }
 ```
-> Kunci (key) bersifat bebas, sesuaikan dengan jenis bahan yang merchant track.
+
+> Key bersifat bebas — sesuaikan dengan bahan yang ingin di-track merchant.
 
 **Response `200`:**
 ```json
@@ -829,8 +751,8 @@ Merchant mengisi stok dasar harian (bahan baku awal).
 
 ---
 
-### `GET /api/merchants/{merchant_id}/inventory-recommendations/today`
-Mengambil rekomendasi stok hari ini.
+#### `GET /api/merchants/{merchant_id}/inventory-recommendations/today`
+Ambil rekomendasi stok hari ini (berdasarkan event sekitar & cuaca).
 
 **Header:** `Authorization: Bearer <access_token>` ✅
 
@@ -859,58 +781,199 @@ Mengambil rekomendasi stok hari ini.
 
 ---
 
-## 10. Error Handling
+### 5.6 Credit Score (Bakul)
 
-### Format Error Standard
-Semua error dikembalikan dalam format:
+#### `GET /api/merchants/{id}/credit-score`
+Ambil skor kredit merchant beserta riwayatnya.
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: pedagang, harus owner merchant ini)*
+
+**Response `200`:** Objek `CreditScoreResponse` berisi skor saat ini dan riwayat log.
+
+---
+
+## 6. Admin — Event Management (HITL)
+
+> [!IMPORTANT]
+> Semua endpoint `/api/admin/*` membutuhkan `role: admin`.  
+> Login dengan: `admin@blusukan.com` / `adminblusukan123`
+
+---
+
+### `POST /api/admin/events`
+Buat event baru secara manual. Status otomatis `approved` saat dibuat admin.
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: admin)*
+
+**Request Body:**
 ```json
 {
-  "detail": "Pesan error dalam Bahasa Indonesia"
+  "name": "Solo Batik Carnival 2026",
+  "genre": "festival",
+  "venue_name": "Jl. Slamet Riyadi, Surakarta",
+  "estimated_attendee_count": 5000,
+  "start_datetime": "2026-08-01T16:00:00Z",
+  "end_datetime": "2026-08-01T22:00:00Z"
 }
 ```
 
-### Error Umum
-| HTTP Code | Keterangan | Yang Harus Dilakukan FE |
-|-----------|------------|-------------------------|
-| `400` | Input tidak valid / Constraint bisnis tidak terpenuhi | Tampilkan `detail` ke user |
-| `401` | Token expired / tidak ada | Coba refresh token, jika gagal → redirect ke Login |
-| `403` | Tidak punya akses (bukan owner) | Tampilkan error "Tidak diizinkan" |
-| `404` | Data tidak ditemukan | Tampilkan halaman / state kosong |
-| `409` | Konflik data (misal: stamp sudah diberikan) | Tampilkan pesan konflik |
-| `422` | Validasi schema gagal | Periksa field yang dikirim |
-| `429` | Rate limit tercapai | Tampilkan "Coba lagi beberapa saat" |
-| `500` | Server error | Tampilkan pesan generik "Terjadi kesalahan" |
+> `latitude` dan `longitude` venue bersifat opsional namun disarankan diisi untuk akurasi rekomendasi inventory.
 
-### Contoh Setup Axios Interceptor (React Native)
+**Response `201`:**
+```json
+{
+  "event_id": "uuid-event",
+  "status": "approved"
+}
+```
+
+---
+
+### `GET /api/admin/events`
+Daftar semua event (bisa difilter status).
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: admin)*
+
+**Query Params:**
+| Param | Keterangan |
+|-------|------------|
+| `status` | `pending_review` \| `approved` \| `rejected` |
+
+**Response `200`:** Array of `EventResponse`
+
+---
+
+### `PATCH /api/admin/events/{event_id}/review`
+Approve atau reject event yang pending.
+
+**Header:** `Authorization: Bearer <access_token>` ✅ *(Role: admin)*
+
+**Request Body:**
+```json
+{
+  "action": "approve",
+  "name": "(opsional) Edit nama event",
+  "genre": "(opsional) Ubah genre",
+  "estimated_attendee_count": 6000
+}
+```
+
+| `action` | Keterangan |
+|----------|------------|
+| `approve` | Event jadi publik (`status: approved`) |
+| `reject` | Event ditolak (`status: rejected`) |
+
+**Response `200`:** `EventResponse` yang sudah diupdate.
+
+---
+
+### `POST /api/admin/inventory-recommendations/recalculate`
+Trigger manual Celery untuk recalculate semua merchant recommendations sekarang.
+
+**Header:** `Authorization: Bearer <access_token>` ✅
+
+**Response `202`:**
+```json
+{
+  "message": "Tugas perhitungan stok telah dikirim ke Celery.",
+  "job_id": "async-celery"
+}
+```
+
+---
+
+## 7. Events — Publik (Tanpa Auth)
+
+> Endpoint ini **tidak memerlukan autentikasi**. Digunakan untuk halaman eksplorasi event di Solo Raya.
+
+---
+
+### `GET /api/events`
+Daftar event yang sudah `approved`.
+
+**Query Params:**
+| Param | Tipe | Keterangan |
+|-------|------|------------|
+| `upcoming` | `boolean` | Jika `true`, hanya event yang belum berakhir |
+
+**Contoh:** `GET /api/events?upcoming=true`
+
+**Response `200`:**
+```json
+[
+  {
+    "id": "uuid-event",
+    "name": "Solo Batik Carnival 2026",
+    "genre": "festival",
+    "venue_name": "Jl. Slamet Riyadi",
+    "estimated_attendee_count": 5000,
+    "start_datetime": "2026-08-01T16:00:00Z",
+    "end_datetime": "2026-08-01T22:00:00Z",
+    "status": "approved",
+    "reviewed_by_admin_id": "uuid-admin",
+    "created_at": "2026-07-15T08:00:00Z",
+    "is_expired": false
+  }
+]
+```
+
+---
+
+### `GET /api/events/{event_id}`
+Detail satu event approved.
+
+**Response `200`:** _(Satu objek EventResponse, `is_expired: true` jika sudah lewat)_
+
+---
+
+## 8. Error Handling
+
+### Tabel Error Umum
+| HTTP Code | Keterangan | Tindakan FE |
+|-----------|------------|-------------|
+| `400` | Input tidak valid / constraint bisnis | Tampilkan `detail` ke user |
+| `401` | Token expired / tidak ada / token reuse | Refresh token; jika gagal → redirect Login |
+| `403` | Role tidak cukup / bukan owner merchant | Tampilkan "Tidak diizinkan" |
+| `404` | Data tidak ditemukan | Tampilkan state kosong |
+| `409` | Konflik (misal: stamp sudah diberikan) | Tampilkan pesan konflik |
+| `422` | Validasi schema gagal (field salah tipe/format) | Periksa field yang dikirim |
+| `429` | Rate limit / limit ingest foto tercapai | Tampilkan "Coba lagi nanti" |
+| `500` | Server error | Tampilkan pesan generik |
+
+### Contoh Setup Axios Interceptor (React Native / Expo)
 ```javascript
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const api = axios.create({ baseURL: 'https://<domain>/api' });
+const api = axios.create({ baseURL: 'https://blusukan-be.up.railway.app/api' });
 
-// Auto-inject token
+// Auto-inject token ke setiap request
 api.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Auto-refresh token jika 401
+// Auto-refresh jika 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config._retried) {
+      error.config._retried = true;
       const refreshToken = await SecureStore.getItemAsync('refresh_token');
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refresh_token: refreshToken });
+        const { data } = await axios.post('/api/auth/refresh', {
+          refresh_token: refreshToken,
+        });
+        // Simpan token baru (rotation — token lama sudah tidak valid)
         await SecureStore.setItemAsync('access_token', data.access_token);
+        await SecureStore.setItemAsync('refresh_token', data.refresh_token);
         error.config.headers.Authorization = `Bearer ${data.access_token}`;
-        return api.request(error.config); // Retry request
+        return api.request(error.config);
       } catch {
-        // Refresh gagal → logout
         await SecureStore.deleteItemAsync('access_token');
         await SecureStore.deleteItemAsync('refresh_token');
-        // Navigate to login screen
+        // Navigate ke login screen
       }
     }
     return Promise.reject(error);
@@ -922,14 +985,14 @@ export default api;
 
 ---
 
-## 11. Enum & Konstanta Referensi
+## 9. Enum & Konstanta Referensi
 
 ### User Role
 | Nilai | Keterangan |
 |-------|------------|
-| `wisatawan` | Turis (default) |
-| `pedagang` | Merchant |
-| `admin` | Admin |
+| `wisatawan` | Turis (default setelah register) |
+| `pedagang` | Merchant (setelah register merchant) |
+| `admin` | Admin internal |
 
 ### Merchant Category
 | Nilai | Keterangan |
@@ -937,20 +1000,20 @@ export default api;
 | `KULINER_PANAS` | Makanan/minuman panas |
 | `KULINER_DINGIN` | Minuman/makanan dingin |
 | `KERAJINAN` | Kerajinan tangan |
-| `LAINNYA` | Lainnya |
+| `LAINNYA` | Selain kategori di atas |
 
-### Merchant Status
+### Merchant Status (DB)
 | Nilai | Keterangan |
 |-------|------------|
 | `pending` | Menunggu verifikasi admin |
-| `active` | Aktif |
+| `active` | Aktif (saat ini tidak memblokir fitur) |
 | `suspended` | Diblokir |
 
 ### Itinerary Status
 | Nilai | Keterangan |
 |-------|------------|
-| `draft` | Baru dibuat |
-| `active` | Sedang berjalan |
+| `draft` | Baru dibuat, belum dimulai |
+| `active` | Sedang berjalan (setelah `PATCH /start`) |
 | `completed` | Selesai |
 
 ### Event Genre
@@ -966,7 +1029,7 @@ export default api;
 | Nilai | Keterangan |
 |-------|------------|
 | `pending_review` | Menunggu review admin |
-| `approved` | Disetujui (tampil publik) |
+| `approved` | Disetujui — tampil di publik |
 | `rejected` | Ditolak |
 
 ### Discount Type (Promo)
@@ -980,9 +1043,15 @@ export default api;
 |-------|------------|
 | `pending` | Kode belum dipakai |
 | `redeemed` | Sudah dikonfirmasi merchant |
-| `expired` | Kode kadaluarsa (>15 menit) |
+| `expired` | Kode kedaluwarsa (>15 menit) |
+
+### Source Type (Catalog Item)
+| Nilai | Keterangan |
+|-------|------------|
+| `photo` | Dari hasil AI (Gemini Vision) |
+| `manual` | Ditambah/diedit sendiri oleh merchant |
 
 ---
 
-*Dokumen ini dibuat berdasarkan codebase aktual `develop` branch — Blusukan BE (BytesFest 2026)*
-*Terakhir diperbarui: 20 Juli 2026*
+> *Dokumen ini diperbarui berdasarkan codebase aktual branch `main` — Blusukan BE (BytesFest 2026)*  
+> *Terakhir diperbarui: 22 Juli 2026*
