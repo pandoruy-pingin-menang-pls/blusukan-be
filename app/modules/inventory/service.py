@@ -36,7 +36,7 @@ async def get_today_recommendation(db: AsyncSession, merchant_id: UUID, target_d
     return rec
 
 async def trigger_celery_recalc():
-    from app.workers.celery_app import celery_app
+    from app.workers.celery_app import celery_app  # noqa: F401
     from app.workers.tasks_stock_recalc import calculate_daily_stock
     # Jalankan secara asynchronous di background worker celery
     calculate_daily_stock.delay()

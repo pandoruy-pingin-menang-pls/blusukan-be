@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -13,7 +14,6 @@ from app.modules.gamification.schemas import (
     RedemptionResponse,
     StampListResponse,
 )
-from typing import List
 from app.modules.gamification.service import gamification_service
 from app.modules.merchant.dependencies import require_merchant_ownership
 from app.modules.merchant.models import Merchant
