@@ -172,4 +172,49 @@ class GeminiClient:
             logger.error(f"Gemini API error during embed_text: {str(e)}")
             raise
 
+    async def generate_impact_insight(self, metrics: dict) -> dict:
+        fallback_condition = "Perlu Perhatian" if metrics.get("pending_events", 0) > 10 else "Baik"
+
+        if not self.client:
+            return {
+                "condition": fallback_condition,
+                "recommendation": "Sistem berjalan baik secara simulasi. (Mock Data)"
+            }
+
+        prompt = f"""
+        Anda adalah analis data AI untuk aplikasi pariwisata Blusukan.
+        Tugas Anda adalah membaca data statistik hari ini dan memberikan analisis singkat.
+        Data Statistik: {json.dumps(metrics)}
+
+        Hasilkan output HANYA DALAM FORMAT JSON berupa satu object.
+        Object wajib memiliki keys berikut:
+        - "condition" (string): Pilih HANYA SALAH SATU dari: "Baik", "Perlu Perhatian", atau "Kritis" berdasarkan logika analisis wajar terhadap data tersebut (misalnya jika pending event banyak, maka Perlu Perhatian).
+        - "recommendation" (string): 1 hingga 2 kalimat rekomendasi strategis, taktis, atau pujian singkat kepada Admin. Harus berbahasa Indonesia yang profesional namun luwes.
+
+        Jangan beri teks penjelasan apapun selain JSON object.
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model=settings.GEMINI_MODEL_TEXT,
+                contents=prompt
+            )
+            raw_text = response.text
+            clean_text = raw_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+
+            parsed = json.loads(clean_text.strip())
+            return parsed
+        except Exception as e:
+            logger.error(f"Failed to generate impact insight: {str(e)}")
+            return {
+                "condition": fallback_condition,
+                "recommendation": "Gagal menghubungi layanan AI (Fallback Mode). Pantau data secara manual."
+            }
+
 gemini_client = GeminiClient()
