@@ -41,6 +41,23 @@ async def generate_itinerary(
             raise e
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}") from e
 
+@router.get("/me", response_model=list[ItineraryResponse])
+async def get_my_itineraries(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Menampilkan riwayat perjalanan (itineraries) yang pernah dibuat oleh turis ini.
+    (Berfungsi sebagai Activity Log untuk Wisatawan).
+    """
+    result = await db.execute(
+        select(Itinerary)
+        .where(Itinerary.user_id == current_user.id)
+        .order_by(Itinerary.created_at.desc())
+        .limit(20)
+    )
+    return result.scalars().all()
+
 @router.get("/{itinerary_id}", response_model=ItineraryResponse)
 async def get_itinerary(
     itinerary_id: UUID,
