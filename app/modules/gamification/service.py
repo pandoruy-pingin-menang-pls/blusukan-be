@@ -25,6 +25,7 @@ from app.modules.gamification.models import (
     Stamp,
 )
 from app.modules.gamification.schemas import PromoCreate
+from app.modules.merchant.models import Merchant
 
 
 class GamificationService:
@@ -95,6 +96,90 @@ class GamificationService:
         )
         result = await db.execute(stmt)
         return result.scalars().all()
+
+    @staticmethod
+    async def list_all_promos(
+        db: AsyncSession,
+        status: str = "active",
+        merchant_id: UUID | None = None,
+        q: str | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> dict:
+        if status not in {"active", "expired", "all"}:
+            raise ValueError("status must be one of: active, expired, all")
+
+        page = max(page, 1)
+        limit = min(max(limit, 1), 100)
+        offset = (page - 1) * limit
+        now = datetime.now(timezone.utc)
+
+        conditions = []
+        if status == "active":
+            conditions.extend([Promo.is_active.is_(True), Promo.valid_until >= now])
+        elif status == "expired":
+            conditions.append(Promo.valid_until < now)
+
+        if merchant_id is not None:
+            conditions.append(Promo.merchant_id == merchant_id)
+
+        normalized_q = q.strip() if q else None
+        if normalized_q:
+            search = f"%{normalized_q}%"
+            conditions.append(
+                Promo.title.ilike(search) | Merchant.name.ilike(search)
+            )
+
+        count_stmt = (
+            select(func.count())
+            .select_from(Promo)
+            .join(Merchant, Promo.merchant_id == Merchant.id)
+        )
+        data_stmt = (
+            select(
+                Promo.id.label("promo_id"),
+                Promo.merchant_id,
+                Merchant.name.label("merchant_name"),
+                Merchant.category.label("merchant_category"),
+                Promo.title,
+                Promo.discount_type,
+                Promo.discount_value,
+                Promo.stamp_required_count,
+                Promo.is_active,
+                Promo.valid_until,
+                Promo.created_at,
+            )
+            .join(Merchant, Promo.merchant_id == Merchant.id)
+            .order_by(Promo.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        if conditions:
+            count_stmt = count_stmt.where(*conditions)
+            data_stmt = data_stmt.where(*conditions)
+
+        total_result = await db.execute(count_stmt)
+        total = total_result.scalar_one()
+
+        result = await db.execute(data_stmt)
+        items = []
+        for row in result.mappings().all():
+            row_dict = dict(row)
+            row_dict["discount_value"] = float(row_dict["discount_value"])
+            row_dict["status"] = (
+                "active"
+                if row_dict["is_active"] and row_dict["valid_until"] >= now
+                else "expired"
+            )
+            items.append(row_dict)
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "limit": limit,
+        }
 
     @staticmethod
     async def list_available_promos(db: AsyncSession, user_id: UUID):
