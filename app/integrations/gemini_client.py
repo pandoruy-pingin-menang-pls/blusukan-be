@@ -174,11 +174,11 @@ class GeminiClient:
 
     async def generate_impact_insight(self, metrics: dict) -> dict:
         fallback_condition = "Perlu Perhatian" if metrics.get("pending_events", 0) > 10 else "Baik"
-        
+
         if not self.client:
             return {
                 "condition": fallback_condition,
-                "recommendation": f"Sistem berjalan baik secara simulasi. (Mock Data)"
+                "recommendation": "Sistem berjalan baik secara simulasi. (Mock Data)"
             }
 
         prompt = f"""
