@@ -30,6 +30,7 @@ async def register_merchant(
         category=merchant_in.category,
         address=merchant_in.address,
         location=wkt_point,
+        is_redemption_partner=merchant_in.is_redemption_partner,
     )
     db.add(new_merchant)
 

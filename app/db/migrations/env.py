@@ -17,6 +17,7 @@ from app.modules.events.models import Event
 from app.modules.routing.models import Itinerary
 from app.modules.transactions.models import Transaction
 from app.modules.gamification.models import Stamp, Promo, PromoRedemption
+from app.modules.monitoring.models import ActivityLog
 
 config = context.config
 

@@ -65,3 +65,13 @@ async def get_my_merchant_profile(
         raise MerchantNotFoundException()
 
     return merchant
+
+@router.patch("/{merchant_id}/redemption-partner", summary="Toggle status redemption partner")
+async def toggle_redemption_partner(
+    merchant_id: str,
+    payload: __import__('app.modules.merchant.schemas', fromlist=['RedemptionPartnerUpdate']).RedemptionPartnerUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.merchant.service import set_redemption_partner
+    return await set_redemption_partner(db, merchant_id, payload.is_redemption_partner)

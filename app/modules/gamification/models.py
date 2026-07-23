@@ -81,7 +81,7 @@ class Promo(Base):
     )
     title = Column(String(150), nullable=False)
     discount_type = Column(
-        Enum(DiscountType, name="discount_type_enum", create_type=False),
+        Enum(DiscountType, name="discount_type_enum", create_type=False, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
     )
     discount_value = Column(Numeric(10, 2), nullable=False)
@@ -129,7 +129,7 @@ class PromoRedemption(Base):
     redemption_code = Column(String(8), unique=True, nullable=False, index=True)
 
     status = Column(
-        Enum(RedemptionStatus, name="redemption_status_enum", create_type=False),
+        Enum(RedemptionStatus, name="redemption_status_enum", create_type=False, values_callable=lambda obj: [e.value for e in obj]),
         default=RedemptionStatus.PENDING,
         server_default="pending",
         nullable=False,

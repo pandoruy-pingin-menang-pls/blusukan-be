@@ -1,6 +1,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.middleware import ActivityLoggingMiddleware
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.catalog.router import router as catalog_router
@@ -9,9 +10,11 @@ from app.modules.gamification.router import (
     merchant_promo_router,
     user_gamification_router,
 )
+from app.modules.impact.router import router as impact_router
 from app.modules.inventory.router import admin_router as inventory_admin_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.merchant.router import router as merchant_router
+from app.modules.monitoring.router import router as monitoring_router
 from app.modules.routing.router import router as routing_router
 from app.modules.transactions.router import router as transactions_router
 
@@ -60,8 +63,12 @@ api_router.include_router(user_gamification_router)
 async def root():
     return {"message": "Sugeng rawuh ingkang Blusukan API!"}
 
+api_router.include_router(impact_router)
+api_router.include_router(monitoring_router)
+
 @api_router.get("/health", tags=["System"])
 async def health():
     return {"status": "healthy", "service": "Blusukan API"}
 
 app.include_router(api_router)
+app.add_middleware(ActivityLoggingMiddleware)

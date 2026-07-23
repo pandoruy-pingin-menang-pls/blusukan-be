@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -48,6 +48,28 @@ class PromoAvailableResponse(BaseModel):
     discount_value: float
     stamp_required_count: int
     user_stamp_count: int
+
+
+class GlobalPromoItemResponse(BaseModel):
+    promo_id: UUID
+    merchant_id: UUID
+    merchant_name: str
+    merchant_category: str | None
+    title: str
+    discount_type: DiscountType
+    discount_value: float
+    stamp_required_count: int
+    is_active: bool
+    status: Literal["active", "expired"]
+    valid_until: datetime
+    created_at: datetime
+
+
+class GlobalPromoPaginatedResponse(BaseModel):
+    items: List[GlobalPromoItemResponse]
+    total: int
+    page: int
+    limit: int
 
 
 class RedemptionResponse(BaseModel):
