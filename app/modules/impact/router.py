@@ -34,13 +34,20 @@ async def get_impact_metrics(
     total_event_query = select(func.count(Event.id))
     total_events = (await db.execute(total_event_query)).scalar() or 0
 
-    # Determine main condition based on some logic
-    if pending_events > 10:
-        condition = "Perlu Perhatian"
-        recommendation = "Terdapat banyak event menunggu persetujuan. Segera lakukan review."
-    else:
-        condition = "Baik"
-        recommendation = "Kondisi sistem stabil. Terus pantau pendaftaran pedagang dan event."
+    # Siapkan metrik untuk dianalisis oleh AI
+    metrics_data = {
+        "total_wisatawan": total_wisatawan,
+        "total_pedagang": total_pedagang,
+        "pending_events": pending_events,
+        "total_events": total_events
+    }
+
+    # Panggil Gemini AI sebagai Data Analyst
+    from app.integrations.gemini_client import gemini_client
+    insight = await gemini_client.generate_impact_insight(metrics_data)
+
+    condition = insight.get("condition", "Baik")
+    recommendation = insight.get("recommendation", "Tidak ada saran spesifik.")
 
     return {
         "condition": condition,
