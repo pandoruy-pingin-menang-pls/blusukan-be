@@ -173,10 +173,12 @@ class GeminiClient:
             raise
 
     async def generate_impact_insight(self, metrics: dict) -> dict:
+        fallback_condition = "Perlu Perhatian" if metrics.get("pending_events", 0) > 10 else "Baik"
+        
         if not self.client:
             return {
-                "condition": "Baik",
-                "recommendation": "Kondisi sistem baik. Terus pantau aktivitas pengguna dan event."
+                "condition": fallback_condition,
+                "recommendation": f"Sistem berjalan baik secara simulasi. (Mock Data)"
             }
 
         prompt = f"""
@@ -211,7 +213,7 @@ class GeminiClient:
         except Exception as e:
             logger.error(f"Failed to generate impact insight: {str(e)}")
             return {
-                "condition": "Baik",
+                "condition": fallback_condition,
                 "recommendation": "Gagal menghubungi layanan AI (Fallback Mode). Pantau data secara manual."
             }
 
