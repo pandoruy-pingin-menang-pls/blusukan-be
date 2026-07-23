@@ -130,7 +130,7 @@ async def get_my_stamps(
     Melihat seluruh stamp yang dimiliki wisatawan.
     """
     stamps = await gamification_service.get_user_stamps(db, current_user.id)
-    total_stamps = len(stamps)
+    total_stamps = await gamification_service.get_available_stamps(db, current_user.id)
 
     stamps_list = [
         {

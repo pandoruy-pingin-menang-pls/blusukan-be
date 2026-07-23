@@ -118,8 +118,8 @@ async def test_redeem_promo_success(mock_db, mock_user):
     mock_db.execute.side_effect = [
         MagicMock(), # User lock
         MagicMock(scalar_one=MagicMock(return_value=5)), # User stamp count
+        MagicMock(scalar_one=MagicMock(return_value=0)), # Used stamp count
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=promo)))), # Promo
-        MagicMock(scalar_one=MagicMock(return_value=0)) # Used stamp count
     ]
 
     async def mock_refresh(obj):
@@ -150,9 +150,9 @@ async def test_redeem_promo_insufficient_stamps(mock_db, mock_user):
     # User cuma punya 2 stamp
     mock_db.execute.side_effect = [
         MagicMock(), # User lock
-        MagicMock(scalar_one=MagicMock(return_value=2)),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=promo)))),
-        MagicMock(scalar_one=MagicMock(return_value=0))
+        MagicMock(scalar_one=MagicMock(return_value=2)), # User stamp count
+        MagicMock(scalar_one=MagicMock(return_value=0)), # Used stamp count
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=promo)))), # Promo
     ]
 
     with pytest.raises(InsufficientStampsException):
@@ -174,6 +174,7 @@ async def test_redeem_promo_expired(mock_db, mock_user):
     mock_db.execute.side_effect = [
         MagicMock(), # User lock
         MagicMock(scalar_one=MagicMock(return_value=5)),
+        MagicMock(scalar_one=MagicMock(return_value=0)),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=promo)))),
     ]
 

@@ -69,6 +69,19 @@ class GamificationService:
         return result.scalar_one()
 
     @staticmethod
+    async def get_available_stamps(db: AsyncSession, user_id: UUID) -> int:
+        total = await GamificationService.get_total_stamps(db, user_id)
+        used_stamps_stmt = (
+            select(func.coalesce(func.sum(Promo.stamp_required_count), 0))
+            .select_from(PromoRedemption)
+            .join(Promo, PromoRedemption.promo_id == Promo.id)
+            .where(PromoRedemption.user_id == user_id)
+        )
+        used_result = await db.execute(used_stamps_stmt)
+        used_stamps = used_result.scalar_one() or 0
+        return total - used_stamps
+
+    @staticmethod
     async def create_promo(
         db: AsyncSession, merchant_id: UUID, promo_in: PromoCreate
     ):
@@ -183,8 +196,8 @@ class GamificationService:
 
     @staticmethod
     async def list_available_promos(db: AsyncSession, user_id: UUID):
-        # Hitung jumlah stamp user terlebih dahulu
-        user_stamp_count = await GamificationService.get_total_stamps(db, user_id)
+        # Hitung sisa stamp user (yang belum terpakai)
+        user_stamp_count = await GamificationService.get_available_stamps(db, user_id)
 
         # Cari semua promo yang aktif dan tidak expired
         now = datetime.now(timezone.utc)
@@ -210,7 +223,7 @@ class GamificationService:
         user_stmt = select(1).select_from(User).where(User.id == user_id).with_for_update()
         await db.execute(user_stmt)
 
-        user_stamp_count = await GamificationService.get_total_stamps(db, user_id)
+        user_stamp_count = await GamificationService.get_available_stamps(db, user_id)
 
         # 2. Ambil data promo
         promo_stmt = select(Promo).where(Promo.id == promo_id)
@@ -236,27 +249,6 @@ class GamificationService:
             expires_at=expires_at,
             status=RedemptionStatus.PENDING,
         )
-
-        # Simulasi pemotongan stamp bisa dilakukan dengan menandai stamp yang terpakai
-        # Namun di desain saat ini hanya menggunakan count sebagai limit threshold,
-        # asumsinya sistem menghitung total stamp yang telah dipakai dan mengurangi available,
-        # Untuk kepatuhan thd dokumen: "Hitung total stamp aktif user... jika memenuhi, buat kode"
-        # Karena kita butuh mengurangi saldo, kita bisa menyimpan relasi atau
-        # mengurangi logic. Tapi desain "PromoRedemption" menyimpan `user_id`, jadi total stamp =
-        # Total(Stamp) - Sum(PromoRedemption.stamp_required).
-        # Agar count di langkah 1 tetap valid, kita query ulang:
-        used_stamps_stmt = (
-            select(func.coalesce(func.sum(Promo.stamp_required_count), 0))
-            .select_from(PromoRedemption)
-            .join(Promo, PromoRedemption.promo_id == Promo.id)
-            .where(PromoRedemption.user_id == user_id)
-        )
-        used_result = await db.execute(used_stamps_stmt)
-        used_stamps = used_result.scalar_one() or 0
-
-        available_stamps = user_stamp_count - used_stamps
-        if available_stamps < promo.stamp_required_count:
-            raise InsufficientStampsException()
 
         db.add(redemption)
         await db.commit()

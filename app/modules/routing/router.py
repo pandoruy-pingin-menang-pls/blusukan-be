@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -41,7 +42,7 @@ async def generate_itinerary(
             raise e
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}") from e
 
-@router.get("/me", response_model=list[ItineraryResponse])
+@router.get("/me", response_model=List[ItineraryResponse])
 async def get_my_itineraries(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
