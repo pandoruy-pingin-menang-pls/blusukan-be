@@ -1,7 +1,8 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
-from datetime import datetime, date
 
 from app.db.session import get_db
 from app.modules.auth.dependencies import require_admin
@@ -15,7 +16,7 @@ async def get_monitoring_stats(
     admin_user = Depends(require_admin)
 ):
     today = date.today()
-    
+
     # 1. Total Active Users today (unique user_ids in activity log)
     active_users_query = select(func.count(func.distinct(ActivityLog.user_id))).where(
         func.date(ActivityLog.created_at) == today
@@ -32,12 +33,12 @@ async def get_monitoring_stats(
 
     # 3. Activity distribution by role
     distribution_query = select(
-        ActivityLog.user_role, 
+        ActivityLog.user_role,
         func.count(ActivityLog.id)
     ).where(
         func.date(ActivityLog.created_at) == today
     ).group_by(ActivityLog.user_role)
-    
+
     distribution_result = await db.execute(distribution_query)
     role_distribution = {row[0] or "unknown": row[1] for row in distribution_result.all()}
 
@@ -56,7 +57,7 @@ async def get_recent_activities(
     query = select(ActivityLog).order_by(desc(ActivityLog.created_at)).limit(limit)
     result = await db.execute(query)
     activities = result.scalars().all()
-    
+
     return {
         "activities": [
             {
