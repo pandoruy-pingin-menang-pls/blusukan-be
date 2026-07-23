@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from datetime import date, timedelta
 from typing import Optional
-from datetime import datetime, date, timedelta
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.modules.auth.dependencies import require_admin
 from app.modules.auth.models import User, UserRole
-from app.modules.merchant.models import Merchant
 from app.modules.events.models import Event, EventStatus
+from app.modules.merchant.models import Merchant
 
 router = APIRouter(prefix="/admin/impact", tags=["Admin Impact Dashboard"])
 
@@ -22,7 +23,7 @@ async def get_impact_metrics(
     total_wisatawan = (await db.execute(wisatawan_query)).scalar() or 0
 
     # 2. Total Pedagang Aktif
-    pedagang_query = select(func.count(Merchant.id)).where(Merchant.is_active == True)
+    pedagang_query = select(func.count(Merchant.id)).where(Merchant.is_active)
     total_pedagang = (await db.execute(pedagang_query)).scalar() or 0
 
     # 3. Jumlah Event Menunggu Persetujuan
@@ -61,7 +62,7 @@ async def get_action_logs(
 ):
     # Base query for events which acts as our action logs
     query = select(Event)
-    
+
     # Filter by period
     if period == "today":
         query = query.where(func.date(Event.created_at) == date.today())
@@ -69,7 +70,7 @@ async def get_action_logs(
         query = query.where(Event.created_at >= (date.today() - timedelta(days=7)))
     elif period == "month":
         query = query.where(Event.created_at >= (date.today() - timedelta(days=30)))
-        
+
     # Filter by status
     if status:
         query = query.where(Event.status == status)
@@ -77,7 +78,7 @@ async def get_action_logs(
     query = query.order_by(Event.created_at.desc())
     result = await db.execute(query)
     events = result.scalars().all()
-    
+
     return {
         "items": [
             {

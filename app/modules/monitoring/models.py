@@ -1,10 +1,12 @@
 import uuid
+
 from sqlalchemy import Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.db.base import Base
+
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
@@ -26,7 +28,7 @@ class ActivityLog(Base):
     endpoint = Column(String(255), nullable=True)
     method = Column(String(10), nullable=True)
     details = Column(Text, nullable=True)
-    
+
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
