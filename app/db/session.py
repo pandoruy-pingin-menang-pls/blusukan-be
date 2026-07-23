@@ -9,7 +9,14 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,  # Ubah ke True jika ingin melihat raw SQL log di console
     future=True,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
 )
 
 # Inisialisasi async sessionmaker
