@@ -14,9 +14,9 @@ def get_weights(parsed_constraints: dict) -> dict:
     """
 
     # 1. Base weights (Asumsi standar jika user tidak spesifik)
-    w1_base = 0.20
+    w1_base = 0.30
     w2_base = 0.30
-    w3_base = 0.30
+    w3_base = 0.20
     w4_base = 0.20
 
     # 2. Adjustments berdasarkan constraints
